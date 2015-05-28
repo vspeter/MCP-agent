@@ -1,0 +1,80 @@
+#!/usr/bin/python -u
+
+import sys
+import os
+from optparse import OptionParser
+import ConfigParser
+import logging
+
+from nullunit.MCP import MCP
+from nullunit.Packrat import Packrat
+from nullunit.iterate import readState, writeState, doStep
+from nullunit.procutils import open_output
+
+PID_FILE = '/var/run/nullunit.pid'
+STATE_FILE = '/var/run/nullunit.state'
+
+oparser = OptionParser( description='nullunit iterator' )
+
+oparser.add_option( '-v', '--verbose', dest='verbose', default=False, action='store_true' )
+
+( options, args ) = oparser.parse_args()
+
+if os.path.exists( PID_FILE ):
+  print 'pid file exists, bailing...'
+  os.exit( 0 )
+
+tmp = open( PID_FILE, 'w' )
+tmp.write( '%s\n' % os.getpid() )
+tmp.close()
+
+logging.basicConfig()
+logger = logging.getLogger()
+
+if options.verbose:
+  logger.setLevel( logging.DEBUG )
+
+config_file = ConfigParser.ConfigParser()
+
+try:
+  config_file.read( '/etc/mcp/nullunit.conf' )
+except ConfigParser.Error as e:
+  print 'Error reading config file:'
+  print e
+  sys.exit( 1 )
+
+try:
+  mcp = MCP( config_file.get( 'nullunit', 'host' ), config_file.get( 'nullunit', 'proxy' ), config_file.get( 'nullunit', 'build' ), config_file.get( 'nullunit', 'resource' ) )
+except ConfigParser.Error as e:
+  print 'Error retreiving MCP host, proxy, build, and/or resource from config file'
+  sys.exit( 1 )
+
+try:
+  packrat = Packrat( config_file.get( 'packrat', 'host' ), config_file.get( 'packrat', 'proxy' ) )
+except ConfigParser.Error as e:
+  print 'Error retreiving Packrat host, and/or proxy from config file'
+  sys.exit( 1 )
+
+state = readState( STATE_FILE )
+if state[ 'state' ] == 'done':
+  mcp.sendState( 'Done' )
+  logging.info( 'nullunit: done' )
+  sys.exit( 0 )
+
+open_output( '/tmp/nullunit_debug.%s.log' % os.getpid() )
+
+mcp.sendStatus( 'Executing Stage "%s"' % state[ 'state' ] )
+logging.info( 'nullunit: Executing Stage "%s"' % state[ 'state' ] )
+try:
+  doStep( state )
+except Exception as e:
+  logging.error( 'nullunit: Exception "%s"' % e )
+  mcp.sendStatus( 'Exception "%s"' % e )
+  sys.exit( 1 )
+
+  writeState( state )
+
+mcp.sendStatus( 'Stage "%s" Complete' % state[ 'state' ] )
+logging.info( 'nullunit: Stage "%s" Complete' % state[ 'state' ] )
+
+os.unlink( PID_FILE )
