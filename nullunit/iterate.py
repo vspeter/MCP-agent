@@ -2,6 +2,7 @@ import json
 
 from procutils import execute, execute_lines
 
+
 ITERATE_STATES = [ 'clone', 'checkout', 'target', 'done' ]
 
 GIT_CMD = '/usr/bin/git'
@@ -24,23 +25,27 @@ def writeState( file, state ):
   open( file, 'w' ).write( json.dumps( state ) )
 
 
-def doStep( state, packrat ):
+def doStep( state, mcp, packrat ):
   if state[ 'state' ] == 'clone':
+    mcp.sendStatus( 'Cloning' )
     doClone( state )
     state[ 'state' ] = 'checkout'
     return False
 
   elif state[ 'state' ] == 'checkout':
+    mcp.sendStatus( 'Checkout' )
     doCheckout( state )
     state[ 'state' ] = 'target'
     return False
 
   elif state[ 'state' ] == 'target':
+    mcp.sendStatus( 'Target' )
     doTarget( state, packrat )
     state[ 'state' ] = 'done'
     return False
 
   elif state[ 'state' ] == 'done':
+    mcp.sendStatus( 'Ran' )
     return True
 
 

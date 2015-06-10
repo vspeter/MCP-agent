@@ -22,7 +22,7 @@ oparser.add_option( '-v', '--verbose', dest='verbose', default=False, action='st
 
 if os.path.exists( PID_FILE ):
   print 'pid file exists, bailing...'
-  os.exit( 0 )
+  sys.exit( 0 )
 
 tmp = open( PID_FILE, 'w' )
 tmp.write( '%s\n' % os.getpid() )
@@ -44,18 +44,18 @@ except ConfigParser.Error as e:
   sys.exit( 1 )
 
 try:
-  mcp = MCP( config_file.get( 'nullunit', 'host' ), config_file.get( 'nullunit', 'proxy' ), config_file.get( 'nullunit', 'build' ), config_file.get( 'nullunit', 'resource' ) )
+  mcp = MCP( config_file.get( 'mcp', 'host' ), config_file.get( 'mcp', 'proxy' ), config_file.get( 'mcp', 'build' ), config_file.get( 'mcp', 'resource_name' ), config_file.get( 'mcp', 'resource_index' ) )
 except ConfigParser.Error as e:
-  print 'Error retreiving MCP host, proxy, build, and/or resource from config file'
+  print 'Error retreiving MCP host, proxy, build, resource_name, and/or resource_index from config file'
   sys.exit( 1 )
 
 try:
-  packrat = Packrat( config_file.get( 'packrat', 'host' ), config_file.get( 'packrat', 'proxy' ) )
+  packrat = Packrat( config_file.get( 'packrat', 'host' ), config_file.get( 'packrat', 'proxy' ), config_file.get( 'packrat', 'name' ), config_file.get( 'packrat', 'psk' ) )
 except ConfigParser.Error as e:
   print 'Error retreiving Packrat host, and/or proxy from config file'
   sys.exit( 1 )
 
-state = readState( STATE_FILE )
+state = readState( STATE_FILE, config_file.get( 'git', 'url' ), config_file.get( 'git', 'branch' ) )
 if state[ 'state' ] == 'done':
   mcp.sendState( 'Done' )
   logging.info( 'nullunit: done' )
@@ -66,7 +66,7 @@ open_output( '/tmp/nullunit_debug.%s.log' % os.getpid() )
 mcp.sendStatus( 'Executing Stage "%s"' % state[ 'state' ] )
 logging.info( 'nullunit: Executing Stage "%s"' % state[ 'state' ] )
 try:
-  doStep( state )
+  doStep( state, mcp, packrat )
 except Exception as e:
   logging.error( 'nullunit: Exception "%s"' % e )
   mcp.sendStatus( 'Exception "%s"' % e )
