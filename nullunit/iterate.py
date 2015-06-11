@@ -1,22 +1,22 @@
 import json
+import os
+import glob
 
-from procutils import execute, execute_lines
+from procutils import execute, execute_lines, NonZeroException
 
 
-ITERATE_STATES = [ 'clone', 'checkout', 'target', 'done' ]
+ITERATE_STATES = [ 'clone', 'checkout', 'dependancies', 'target', 'done' ]
 
 GIT_CMD = '/usr/bin/git'
 MAKE_CMD = '/usr/bin/make'
+WRK_DIR = '/nullunit'
+APT_GET_CMD = '/usr/bin/apt-get'
 
-def readState( file, uri, branch ):
+def readState( file ):
   try:
     state = json.loads( open( file, 'r' ).read() )
   except:
-    state = {
-              'state': ITERATE_STATES[0],
-              'uri': uri,
-              'branch': branch
-           }
+    return None
 
   return state
 
@@ -28,38 +28,61 @@ def writeState( file, state ):
 def doStep( state, mcp, packrat ):
   if state[ 'state' ] == 'clone':
     mcp.sendStatus( 'Cloning' )
-    doClone( state )
+    state[ 'dir' ] = doClone( state )
     state[ 'state' ] = 'checkout'
-    return False
 
   elif state[ 'state' ] == 'checkout':
     mcp.sendStatus( 'Checkout' )
     doCheckout( state )
-    state[ 'state' ] = 'target'
-    return False
+    state[ 'state' ] = 'dependancies'
+
+  elif state[ 'state' ] == 'dependancies':
+    mcp.sendStatus( 'Dependancies' )
+    doDependancies( state )
+    state[ 'state' ] = 'done'
 
   elif state[ 'state' ] == 'target':
     mcp.sendStatus( 'Target' )
-    doTarget( state, packrat )
-    state[ 'state' ] = 'done'
-    return False
+    if doTarget( state, packrat, mcp ):
+      state[ 'state' ] = 'done'
+      mcp.setSuccess( True )
+    else:
+      state[ 'state' ] = 'failed'
+      mcp.setSuccess( False )
 
   elif state[ 'state' ] == 'done':
-    mcp.sendStatus( 'Ran' )
-    return True
+    mcp.sendStatus( 'Done' )
 
 
 def doClone( state ):
-  execute( '%s clone %s' % ( GIT_CMD, state[ 'uri' ] ) )
+  os.makedirs( WRK_DIR )
+  execute( '%s clone %s' % ( GIT_CMD, state[ 'url' ] ), WRK_DIR )
+  return glob.glob( '%s/*' % WRK_DIR )[0]
 
 
 def doCheckout( state ):
-  execute( '%s checkout %s' % ( GIT_CMD, state[ 'branch' ] ) )
+  execute( '%s checkout %s' % ( GIT_CMD, state[ 'branch' ] ), state[ 'dir' ] )
 
 
-def doTarget( state, packrat ):
-  execute( '%s %s' % ( MAKE_CMD, state[ 'target' ] ) )
+def doDependancies( state ):
+  deps = execute_lines( '%s %s-deps' % ( MAKE_CMD, state[ 'depends' ] ), state[ 'dir' ] )
+  for dep in deps.split():
+    execute( '%s install -y %s' % ( APT_GET_CMD, dep ) )
+
+
+def doTarget( state, packrat, mcp ):
+  try:
+    results = execute_lines( '%s %s' % ( MAKE_CMD, state[ 'target' ] ), state[ 'dir' ] )
+  except NonZeroException:
+    mcp.setResults( results )
+    return False
+
+  mcp.setResults( results )
 
   if state[ 'target' ] == 'dpkg':
-    file_name = execute_lines( '%s dpkg-file' )[-1]
+    mcp.sendStatus( 'Package Build' )
+    file_name = execute_lines( '%s dpkg-file', state[ 'dir' ] )[-1]
     packrat.addPackageFile( file_name )
+    mcp.sendStatus( 'Package Uploaded' )
+
+  return True

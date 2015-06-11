@@ -13,6 +13,7 @@ from nullunit.procutils import open_output
 
 PID_FILE = '/var/run/nullunit.pid'
 STATE_FILE = '/var/run/nullunit.state'
+CONFIG_FILE = '/etc/mcp/nullunit.conf'
 
 oparser = OptionParser( description='nullunit iterator' )
 
@@ -37,16 +38,16 @@ if options.verbose:
 config_file = ConfigParser.ConfigParser()
 
 try:
-  config_file.read( '/etc/mcp/nullunit.conf' )
+  config_file.read( CONFIG_FILE )
 except ConfigParser.Error as e:
   print 'Error reading config file:'
   print e
   sys.exit( 1 )
 
 try:
-  mcp = MCP( config_file.get( 'mcp', 'host' ), config_file.get( 'mcp', 'proxy' ), config_file.get( 'mcp', 'build' ), config_file.get( 'mcp', 'resource_name' ), config_file.get( 'mcp', 'resource_index' ) )
+  mcp = MCP( config_file.get( 'mcp', 'host' ), config_file.get( 'mcp', 'proxy' ), config_file.get( 'mcp', 'job_id' ), config_file.get( 'mcp', 'resource_name' ), config_file.get( 'mcp', 'resource_index' ) )
 except ConfigParser.Error as e:
-  print 'Error retreiving MCP host, proxy, build, resource_name, and/or resource_index from config file'
+  print 'Error retreiving MCP host, proxy, job_id, resource_name, and/or resource_index from config file'
   sys.exit( 1 )
 
 try:
@@ -55,9 +56,23 @@ except ConfigParser.Error as e:
   print 'Error retreiving Packrat host, and/or proxy from config file'
   sys.exit( 1 )
 
-state = readState( STATE_FILE, config_file.get( 'git', 'url' ), config_file.get( 'git', 'branch' ) )
-if state[ 'state' ] == 'done':
-  mcp.sendState( 'Done' )
+try:
+  state = readState( STATE_FILE )
+except ConfigParser.Error as e:
+  print 'Error retreiving git url, git branch, and/or make target from config file'
+  sys.exit( 1 )
+
+if state is None:
+  state = {
+            'state': 'clone',
+            'url': config_file.get( 'git', 'url' ),
+            'branch': config_file.get( 'git', 'branch' ),
+            'target': config_file.get( 'make', 'target' ),
+            'depends': config_file.get( 'make', 'depends' )
+         }
+
+if state[ 'state' ] in ( 'done', 'failed' ):
+  mcp.sendStatus( 'Ran' )
   logging.info( 'nullunit: done' )
   sys.exit( 0 )
 
@@ -72,9 +87,10 @@ except Exception as e:
   mcp.sendStatus( 'Exception "%s"' % e )
   sys.exit( 1 )
 
-  writeState( state )
+writeState( STATE_FILE, state )
 
 mcp.sendStatus( 'Stage "%s" Complete' % state[ 'state' ] )
 logging.info( 'nullunit: Stage "%s" Complete' % state[ 'state' ] )
 
 os.unlink( PID_FILE )
+sys.exit( 0 )
