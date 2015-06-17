@@ -42,24 +42,28 @@ try:
 except ConfigParser.Error as e:
   print 'Error reading config file:'
   print e
+  os.unlink( PID_FILE )
   sys.exit( 1 )
 
 try:
-  mcp = MCP( config_file.get( 'mcp', 'host' ), config_file.get( 'mcp', 'proxy' ), config_file.get( 'mcp', 'job_id' ), config_file.get( 'mcp', 'resource_name' ), config_file.get( 'mcp', 'resource_index' ) )
+  mcp = MCP( config_file.get( 'mcp', 'host' ), config_file.get( 'mcp', 'proxy' ), config_file.getint( 'mcp', 'job_id' ), config_file.get( 'mcp', 'resource_name' ), config_file.getint( 'mcp', 'resource_index' ) )
 except ConfigParser.Error as e:
   print 'Error retreiving MCP host, proxy, job_id, resource_name, and/or resource_index from config file'
+  os.unlink( PID_FILE )
   sys.exit( 1 )
 
 try:
   packrat = Packrat( config_file.get( 'packrat', 'host' ), config_file.get( 'packrat', 'proxy' ), config_file.get( 'packrat', 'name' ), config_file.get( 'packrat', 'psk' ) )
 except ConfigParser.Error as e:
   print 'Error retreiving Packrat host, and/or proxy from config file'
+  os.unlink( PID_FILE )
   sys.exit( 1 )
 
 try:
   state = readState( STATE_FILE )
 except ConfigParser.Error as e:
   print 'Error retreiving git url, git branch, and/or make target from config file'
+  os.unlink( PID_FILE )
   sys.exit( 1 )
 
 if state is None:
@@ -68,29 +72,25 @@ if state is None:
             'url': config_file.get( 'git', 'url' ),
             'branch': config_file.get( 'git', 'branch' ),
             'target': config_file.get( 'make', 'target' ),
-            'depends': config_file.get( 'make', 'depends' )
+            'requires': config_file.get( 'make', 'requires' )
          }
 
 if state[ 'state' ] in ( 'done', 'failed' ):
   mcp.sendStatus( 'Ran' )
   logging.info( 'nullunit: done' )
+  os.unlink( PID_FILE )
   sys.exit( 0 )
 
 open_output( '/tmp/nullunit_debug.%s.log' % os.getpid() )
 
-mcp.sendStatus( 'Executing Stage "%s"' % state[ 'state' ] )
-logging.info( 'nullunit: Executing Stage "%s"' % state[ 'state' ] )
 try:
   doStep( state, mcp, packrat )
 except Exception as e:
-  logging.error( 'nullunit: Exception "%s"' % e )
+  logging.exception( 'nullunit: Exception in doStep for "%s".' % state[ 'state' ] )
   mcp.sendStatus( 'Exception "%s"' % e )
   sys.exit( 1 )
 
 writeState( STATE_FILE, state )
-
-mcp.sendStatus( 'Stage "%s" Complete' % state[ 'state' ] )
-logging.info( 'nullunit: Stage "%s" Complete' % state[ 'state' ] )
 
 os.unlink( PID_FILE )
 sys.exit( 0 )

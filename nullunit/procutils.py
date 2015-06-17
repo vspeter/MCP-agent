@@ -7,7 +7,7 @@ debug_stdout = None
 
 global_env = os.environ
 
-def NonZeroException( Exception ):
+class NonZeroException( Exception ):
   pass
 
 
@@ -40,7 +40,7 @@ def _execute( cmd, dir, stdout, stderr, stdin, env ):
   debug_stdout.write( '%s\n' % datetime.utcnow() )
 
   if proc.returncode != 0:
-    raise NonZeroException( 'Error Executing "%s"' % cmd )
+    raise NonZeroException( 'Error Executing "%s", rc: %s' % ( cmd, proc.returncode ) )
 
   return output
 
