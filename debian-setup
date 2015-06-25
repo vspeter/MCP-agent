@@ -1,0 +1,17 @@
+#!/bin/sh
+
+if [ "x$1" == "xclean" ];
+then
+  DISTRO_NAME="common"
+else
+  DISTRO_NAME=$(lsb_release -sc)
+fi
+
+mkdir debian
+cp -a debian-commmon debian
+if [ -d debian-$DISTRO_NAME ];
+then
+  cp -a debian-$DISTRO_NAME debian
+fi
+
+cat debian-common/changelog | sed s/DIST/$DISTO_NAME/ | sed -r s/"\(([0-9.]*)-([0-9]*)\)"/"(\1-\2${DIST}1)"/ > debian/changelog

@@ -1,10 +1,10 @@
-nullunit (0.1-9) precise; urgency=medium
+nullunit (0.2-1) DIST; urgency=medium
 
-  * Full run #9
+  * added nullunitInterface, MasterSync, AddPackageFile
 
  -- Peter <peter@blueboy>  Wed, 10 Jun 2015 16:30:23 -0600
 
-nullunit (0.1-1) precise; urgency=medium
+nullunit (0.1-1) DIST; urgency=medium
 
   * Initial release.
 
