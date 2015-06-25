@@ -74,7 +74,11 @@ def doCheckout( state ):
 
 
 def doRequires( state ):
-  reqired_list = execute_lines( '%s %s' % ( MAKE_CMD, state[ 'requires' ] ), state[ 'dir' ] )
+  env = os.environ
+  env['DEBIAN_PRIORITY'] = 'critical'
+  env['DEBIAN_FRONTEND'] = 'noninteractive'
+
+  reqired_list = execute_lines( '%s %s' % ( MAKE_CMD, state[ 'requires' ] ), state[ 'dir' ], env=env )
   for reqired in reqired_list:
     logging.info( 'interate: installing "%s"' % reqired )
     execute( '%s install -y %s' % ( APT_GET_CMD, reqired ) )

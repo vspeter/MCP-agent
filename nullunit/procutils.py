@@ -45,10 +45,10 @@ def _execute( cmd, dir, stdout, stderr, stdin, env ):
   return output
 
 
-def execute( cmd, dir=None, stdin=None ):
-  _execute( cmd, dir, debug_stdout, debug_stdout, stdin, global_env )
+def execute( cmd, dir=None, stdin=None, env=global_env ):
+  _execute( cmd, dir, debug_stdout, debug_stdout, stdin, env )
 
 
-def execute_lines( cmd, dir=None, stdin=None ):
-  stdout = _execute( cmd, dir, subprocess.PIPE, debug_stdout, stdin, global_env )
+def execute_lines( cmd, dir=None, stdin=None, env=global_env ):
+  stdout = _execute( cmd, dir, subprocess.PIPE, debug_stdout, stdin, env )
   return stdout.splitlines()

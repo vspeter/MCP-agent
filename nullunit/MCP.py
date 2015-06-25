@@ -21,3 +21,25 @@ class MCP( object ):
   def setResults( self, results ):
     logging.info( 'MCP: Results "%s"' % results[ :100 ].strip() )
     self.cinp.call( '/api/v1/Processor/BuildJob:%s:(setResourceResults)' % self.job_id, { 'name': self.name, 'index': self.index, 'results': results } )
+
+  def getConfigStatus( self, resource, index=None, count=None ):
+    logging.info( 'MCP: Config Status for "%s" index: "%s", count: "%s"' % ( resource, index, count ) )
+    args = { 'name': resource }
+    if index is not None:
+      args[ 'index' ] = index
+
+    if count is not None:
+      args[ 'count' ] = count
+
+    return self.cinp.call( '/api/v1/Processor/BuildJob:%s:(getConfigStatus)' % self.job_id, args )[ 'value' ]
+
+  def getProvisioningInfo( self, resource, index=None, count=None ):
+    logging.info( 'MCP: Provisioning Info for "%s" index: "%s", count: "%s"' % ( resource, index, count ) )
+    args = { 'name': resource }
+    if index is not None:
+      args[ 'index' ] = index
+
+    if count is not None:
+      args[ 'count' ] = count
+
+    return self.cinp.call( '/api/v1/Processor/BuildJob:%s:(getProvisioningInfo)' % self.job_id, args )[ 'value' ]

@@ -3,17 +3,15 @@
 import sys
 import os
 from optparse import OptionParser
-import ConfigParser
 import logging
+import ConfigParser
 
-from nullunit.MCP import MCP
-from nullunit.Packrat import Packrat
+from nullunit.common import getConfig, getMCP, getPackrat
 from nullunit.iterate import readState, writeState, doStep
 from nullunit.procutils import open_output
 
 PID_FILE = '/var/run/nullunit.pid'
 STATE_FILE = '/var/run/nullunit.state'
-CONFIG_FILE = '/etc/mcp/nullunit.conf'
 
 oparser = OptionParser( description='nullunit iterator' )
 
@@ -35,27 +33,18 @@ logger = logging.getLogger()
 if options.verbose:
   logger.setLevel( logging.DEBUG )
 
-config_file = ConfigParser.ConfigParser()
-
-try:
-  config_file.read( CONFIG_FILE )
-except ConfigParser.Error as e:
-  print 'Error reading config file:'
-  print e
+config = getConfig()
+if not config:
   os.unlink( PID_FILE )
   sys.exit( 1 )
 
-try:
-  mcp = MCP( config_file.get( 'mcp', 'host' ), config_file.get( 'mcp', 'proxy' ), config_file.getint( 'mcp', 'job_id' ), config_file.get( 'mcp', 'resource_name' ), config_file.getint( 'mcp', 'resource_index' ) )
-except ConfigParser.Error as e:
-  print 'Error retreiving MCP host, proxy, job_id, resource_name, and/or resource_index from config file'
+mcp = getMCP( config )
+if not mcp:
   os.unlink( PID_FILE )
   sys.exit( 1 )
 
-try:
-  packrat = Packrat( config_file.get( 'packrat', 'host' ), config_file.get( 'packrat', 'proxy' ), config_file.get( 'packrat', 'name' ), config_file.get( 'packrat', 'psk' ) )
-except ConfigParser.Error as e:
-  print 'Error retreiving Packrat host, and/or proxy from config file'
+packrat = getPackrat( config )
+if not packrat:
   os.unlink( PID_FILE )
   sys.exit( 1 )
 
@@ -69,10 +58,10 @@ except ConfigParser.Error as e:
 if state is None:
   state = {
             'state': 'clone',
-            'url': config_file.get( 'git', 'url' ),
-            'branch': config_file.get( 'git', 'branch' ),
-            'target': config_file.get( 'make', 'target' ),
-            'requires': config_file.get( 'make', 'requires' )
+            'url': config.get( 'git', 'url' ),
+            'branch': config.get( 'git', 'branch' ),
+            'target': config.get( 'make', 'target' ),
+            'requires': config.get( 'make', 'requires' )
          }
 
 if state[ 'state' ] in ( 'done', 'failed' ):

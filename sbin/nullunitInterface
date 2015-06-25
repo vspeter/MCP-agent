@@ -1,0 +1,67 @@
+#!/usr/bin/python -u
+
+import sys
+import logging
+import json
+from optparse import OptionParser
+
+from nullunit.common import getConfig, getMCP
+
+oparser = OptionParser( description='nullunit iterator' )
+
+oparser.add_option( '-v', '--verbose', dest='verbose', default=False, action='store_true' )
+
+# query options
+oparser.add_option( '-r', '--resource', help='(query) with resource name', dest='resource', default=None )
+oparser.add_option( '-i', '--index',    help='(query) query with resource index', dest='index', default=None, type='int' )
+oparser.add_option( '-c', '--count',    help='(query) count', dest='count', default=None, type='int' )
+
+# data options
+#oparser.add_option( '-c', '--config', help='(data) get plato config config', dest='config', default=False, action='store_true' )
+#oparser.add_option( '-d', '--device', help='(data) get plato device config', dest='device', default=False, action='store_true' )
+
+oparser.add_option(       '--are-configured', help='(status) exit 0 if configured exit 2 otherwise', dest='are_configured', default=False, action='store_true' )
+
+# output option
+#oparser.add_option( '-f', '--file', help='write output to file, otherwise will be sent to stdout (for data options).', dest='file' )
+
+( options, args ) = oparser.parse_args()
+
+logging.basicConfig()
+logger = logging.getLogger()
+
+if options.verbose:
+  logger.setLevel( logging.DEBUG )
+
+config = getConfig()
+if not config:
+  sys.exit( 1 )
+
+mcp = getMCP( config )
+if not mcp:
+  sys.exit( 1 )
+
+# status options
+
+if options.are_configured:
+  status_list = mcp.getConfigStatus( options.resource, options.index, options.count )
+  result = True
+  for status in status_list.values():
+    result &= status == 'Configured'
+
+  if result:
+    sys.exit( 0 )
+
+  sys.exit( 2 )
+
+# data options
+
+if options.file:
+  output = file( options.file, 'w' )
+else:
+  output = sys.stdout
+
+data = {}
+
+output.wirte( json.dumps( data ) )
+sys.exit( 0 )

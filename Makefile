@@ -4,6 +4,8 @@ install:
 	mkdir -p $(DESTDIR)usr/sbin
 	mkdir -p $(DESTDIR)etc/mcp
 	install -m 755 sbin/nullunitIterate $(DESTDIR)usr/sbin
+	install -m 755 sbin/nullunitInterface $(DESTDIR)usr/sbin
+	install -m 755 sbin/nullunitMasterSync $(DESTDIR)usr/sbin
 
 clean:
 	rm -fr build
