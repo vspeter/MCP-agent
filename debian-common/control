@@ -8,6 +8,6 @@ Standards-Version: 3.8.3
 
 Package: nullunit
 Architecture: all
-Depends: python (>= 2.6), python-support, python-simplejson, python-cinp, cron, plato-client, git, make, ${shlibs:Depends}, ${misc:Depends}
+Depends: python (>= 2.6), python-support, python-simplejson, python-cinp (>= 0.2), cron, plato-client, git, make, ${shlibs:Depends}, ${misc:Depends}
 Description: MCP Agent
   MCP Agent

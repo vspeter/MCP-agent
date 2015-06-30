@@ -40,11 +40,11 @@ dpkg-targets:
 	@echo precise trusty
 
 dpkg-requires:
-	@echo dpkg-dev
+	@echo dpkg-dev debhelper cdbs
 
 dpkg: full-clean
 	./debian-setup
-	dpkg-buildpackage -b -us -uc
+	dpkg-buildpackage -b -us -uc > /tmp/dpkg-build.log
 
 dpkg-file:
 	@echo $(shell ls ../nullunit_*.deb)

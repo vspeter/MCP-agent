@@ -5,13 +5,14 @@ import os
 from optparse import OptionParser
 import logging
 import ConfigParser
+from logging.handlers import SysLogHandler
 
 from nullunit.common import getConfig, getMCP, getPackrat
 from nullunit.iterate import readState, writeState, doStep
 from nullunit.procutils import open_output
 
 PID_FILE = '/var/run/nullunitIterate.pid'
-STATE_FILE = '/var/lib/nullunitIterate.state'
+STATE_FILE = '/var/lib/mcp/nullunitIterate.state'
 
 oparser = OptionParser( description='nullunit iterator' )
 
@@ -19,19 +20,27 @@ oparser.add_option( '-v', '--verbose', dest='verbose', default=False, action='st
 
 ( options, args ) = oparser.parse_args()
 
+logging.basicConfig()
+logger = logging.getLogger()
+handler = SysLogHandler( address='/dev/log', facility=SysLogHandler.LOG_DAEMON )
+handler.setFormatter( logging.Formatter( fmt='nullunitIterate [%(process)d]: %(message)s' ) )
+logger.addHandler( handler )
+
+if options.verbose:
+  logger.setLevel.setLevel( logging.DEBUG )
+else:
+  logger.setLevel( logging.INFO )
+
+logging.info( 'Starting...' )
+
 if os.path.exists( PID_FILE ):
-  print 'pid file exists, bailing...'
+  logging.error( 'pid file exists, bailing...' )
+  logging.shutdown()
   sys.exit( 0 )
 
 tmp = open( PID_FILE, 'w' )
 tmp.write( '%s\n' % os.getpid() )
 tmp.close()
-
-logging.basicConfig()
-logger = logging.getLogger()
-
-if options.verbose:
-  logger.setLevel( logging.DEBUG )
 
 config = getConfig()
 if not config:
@@ -53,6 +62,7 @@ try:
 except ConfigParser.Error as e:
   print 'Error retreiving git url, git branch, and/or make target from config file'
   os.unlink( PID_FILE )
+  logging.shutdown()
   sys.exit( 1 )
 
 if state is None:
@@ -66,20 +76,27 @@ if state is None:
 
 if state[ 'state' ] in ( 'done', 'failed' ):
   mcp.sendStatus( 'Ran' )
-  logging.info( 'nullunit: done' )
+  if config.get( 'make', 'target' ) in ( 'lint', 'test', 'dpkg', 'rpm', 'resource' ):
+    logging.info( 'Signaling Job Ran')
+    mcp.signalJobRan()
+  logging.info( 'Task Complete' )
   os.unlink( PID_FILE )
+  logging.shutdown()
   sys.exit( 0 )
 
-open_output( '/tmp/nullunit_debug.%s.log' % os.getpid() )
+open_output( '/tmp/nullunitIterate_debug.%s.log' % os.getpid() )
 
 try:
   doStep( state, mcp, packrat )
 except Exception as e:
-  logging.exception( 'nullunit: Exception in doStep for "%s".' % state[ 'state' ] )
+  logging.exception( 'Exception in doStep for "%s".' % state[ 'state' ] )
   mcp.sendStatus( 'Exception "%s"' % e )
+  logging.shutdown()
   sys.exit( 1 )
 
+logging.info( 'Writing State' )
 writeState( STATE_FILE, state )
-
 os.unlink( PID_FILE )
+logging.info( 'Done' )
+logging.shutdown()
 sys.exit( 0 )

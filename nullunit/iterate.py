@@ -3,6 +3,8 @@ import os
 import glob
 import shutil
 import logging
+import socket
+from datetime import datetime
 
 from procutils import execute, execute_lines, NonZeroException
 
@@ -94,10 +96,19 @@ def doTarget( state, packrat, mcp ):
 
   mcp.setResults( '\n'.join( results ) )
 
-  if state[ 'target' ] == 'dpkg':
+  if state[ 'target' ] in ( 'dpkg', 'rpm', 'resource' ):
     mcp.sendStatus( 'Package Build' )
-    file_name = execute_lines( '%s dpkg-file', state[ 'dir' ] )[-1]
-    packrat.addPackageFile( file_name )
+    file_name = execute_lines( '%s %s-file' % ( MAKE_CMD, state[ 'target' ] ), state[ 'dir' ] )[-1]
+    file = open( file_name, 'r' )
+    try:
+      packrat.addPackageFile( file, 'Package File "%s"' % os.path.basename( file_name ), 'MCP Auto Build from %s.  Build on %s at %s' % ( state[ 'url' ], socket.getfqdn(), datetime.utcnow() ) )
+    except Exception as e:
+      logging.exception( 'iterate: Exception "%s" while adding package file "%s"' % ( e, file_name ) )
+      mcp.setResults( 'Exception adding package file' )
+      file.close()
+      return False
+
+    file.close()
     mcp.sendStatus( 'Package Uploaded' )
 
   return True
