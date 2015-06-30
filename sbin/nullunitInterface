@@ -11,16 +11,20 @@ oparser = OptionParser( description='nullunit iterator' )
 
 oparser.add_option( '-v', '--verbose', dest='verbose', default=False, action='store_true' )
 
+# job contoll
+oparser.add_option(       '--signal-ran', help='(job) Signal the job has been Run', dest='signal_ran', default=False, action='store_true' )
+
 # query options
 oparser.add_option( '-r', '--resource', help='(query) with resource name', dest='resource', default=None )
 oparser.add_option( '-i', '--index',    help='(query) query with resource index', dest='index', default=None, type='int' )
 oparser.add_option( '-c', '--count',    help='(query) count', dest='count', default=None, type='int' )
 
+# status options
+oparser.add_option(       '--are-configured', help='(status) exit 0 if configured exit 2 otherwise', dest='are_configured', default=False, action='store_true' )
+
 # data options
 #oparser.add_option( '-c', '--config', help='(data) get plato config config', dest='config', default=False, action='store_true' )
 #oparser.add_option( '-d', '--device', help='(data) get plato device config', dest='device', default=False, action='store_true' )
-
-oparser.add_option(       '--are-configured', help='(status) exit 0 if configured exit 2 otherwise', dest='are_configured', default=False, action='store_true' )
 
 # output option
 #oparser.add_option( '-f', '--file', help='write output to file, otherwise will be sent to stdout (for data options).', dest='file' )
@@ -41,19 +45,28 @@ mcp = getMCP( config )
 if not mcp:
   sys.exit( 1 )
 
-# status options
+# job controll:
+if options.signal_ran:
+  mcp.signalJobRan()
+  sys.exit( 0 )
 
+# status options
 if options.are_configured:
   status_list = mcp.getConfigStatus( options.resource, options.index, options.count )
   result = True
-  for status in status_list.values():
-    result &= status == 'Configured'
+  for item in status_list:
+    if options.verbose:
+      print '%s - %s' % ( item, status_list[ item ] )
+
+    result &= ( status_list[ item ] == 'Configured' )
 
   if result:
     sys.exit( 0 )
 
   sys.exit( 2 )
 
+
+sys.exit( 1 ) # not implememented from here out yet
 # data options
 
 if options.file:

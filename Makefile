@@ -1,3 +1,5 @@
+DISTRO_NAME := $(shell lsb_release -sc | tr A-Z a-z)
+
 all:
 
 install:
@@ -10,20 +12,41 @@ install:
 
 clean:
 	rm -fr build
-	dh_clean
-	rm -fr debian
+
+full-clean: clean
+	if [ -d debian ] ; then dh_clean; fi
+	if [ -d debian ] ; then rm -fr debian; fi
+
+test-targets:
+	@echo precise trusty
+
+test-requires:
+ifeq (precise, $(DISTRO_NAME))
+	@echo python-py
+else
+	@echo python-pytest
+endif
 
 test:
 	cd tests && py.test -x iterate.py
 
-lint:
+lint-requires:
+	@echo linter
 
-dpkg: clean
-	debian-setup
+lint:
+	linter
+
+dpkg-targets:
+	@echo precise trusty
+
+dpkg-requires:
+	@echo dpkg-dev
+
+dpkg: full-clean
+	./debian-setup
 	dpkg-buildpackage -b -us -uc
-	dh_clean
 
 dpkg-file:
 	@echo $(shell ls ../nullunit_*.deb)
 
-.PHONY: all clean test lint dpkg dpkg-file
+.PHONY: all clean full-clean test-targets test-requires test lint-requires lint dpkg-targets dpkg-requires dpkg dpkg-file

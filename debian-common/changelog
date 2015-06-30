@@ -1,4 +1,4 @@
-nullunit (0.2-1) DIST; urgency=medium
+nullunit (0.2-4) DIST; urgency=medium
 
   * added nullunitInterface, MasterSync, AddPackageFile
 

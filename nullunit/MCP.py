@@ -10,6 +10,10 @@ class MCP( object ):
     self.name = name
     self.index = index
 
+  def signalJobRan( self ):
+    logging.info( 'MCP: Signal Job Ran' )
+    self.cinp.call( '/api/v1/Processor/BuildJob:%s:(jobRan)' % self.job_id, {} )
+
   def sendStatus( self, status ):
     logging.info( 'MCP: Status "%s"' % status )
     self.cinp.call( '/api/v1/Processor/BuildJob:%s:(updateResourceState)' % self.job_id, { 'name': self.name, 'index': self.index, 'status': status } )

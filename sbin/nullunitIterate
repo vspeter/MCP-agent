@@ -10,8 +10,8 @@ from nullunit.common import getConfig, getMCP, getPackrat
 from nullunit.iterate import readState, writeState, doStep
 from nullunit.procutils import open_output
 
-PID_FILE = '/var/run/nullunit.pid'
-STATE_FILE = '/var/run/nullunit.state'
+PID_FILE = '/var/run/nullunitIterate.pid'
+STATE_FILE = '/var/lib/nullunitIterate.state'
 
 oparser = OptionParser( description='nullunit iterator' )
 
