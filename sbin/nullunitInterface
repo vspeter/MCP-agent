@@ -65,7 +65,7 @@ if options.are_configured:
 
   sys.exit( 2 )
 
-
+oparser.print_help()
 sys.exit( 1 ) # not implememented from here out yet
 # data options
 

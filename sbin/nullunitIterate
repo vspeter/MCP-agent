@@ -27,7 +27,7 @@ handler.setFormatter( logging.Formatter( fmt='nullunitIterate [%(process)d]: %(m
 logger.addHandler( handler )
 
 if options.verbose:
-  logger.setLevel.setLevel( logging.DEBUG )
+  logger.setLevel( logging.DEBUG )
 else:
   logger.setLevel( logging.INFO )
 

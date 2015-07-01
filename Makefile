@@ -17,7 +17,7 @@ full-clean: clean
 	if [ -d debian ] ; then dh_clean; fi
 	if [ -d debian ] ; then rm -fr debian; fi
 
-test-targets:
+test-distros:
 	@echo precise trusty
 
 test-requires:
@@ -31,12 +31,16 @@ test:
 	cd tests && py.test -x iterate.py
 
 lint-requires:
+ifeq (trusty, $(DISTRO_NAME))
 	@echo linter
+endif
 
 lint:
-	linter
+ifeq (trusty, $(DISTRO_NAME))
+	linter -i sbin/nullunitMasterSync -i sbin/nullunitInterface
+endif
 
-dpkg-targets:
+dpkg-distros:
 	@echo precise trusty
 
 dpkg-requires:
@@ -49,4 +53,4 @@ dpkg: full-clean
 dpkg-file:
 	@echo $(shell ls ../nullunit_*.deb)
 
-.PHONY: all clean full-clean test-targets test-requires test lint-requires lint dpkg-targets dpkg-requires dpkg dpkg-file
+.PHONY: all clean full-clean test-distros test-requires test lint-requires lint dpkg-distros dpkg-requires dpkg dpkg-file

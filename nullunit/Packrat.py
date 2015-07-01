@@ -21,5 +21,4 @@ class Packrat( object ):
     file_uri = self.cinp.uploadFile( '/api/FILES', file, self._callback )[ 'uri' ]
     logging.info( 'Packrat: Adding file "%s", justification: "%s", provenance: "%s"' % ( file_uri, justification, provenance ) )
     result = self.cinp.call( '/api/v1/Repos/PackageFile(create)', { 'file': file_uri, 'justification': justification, 'provenance': provenance } )
-
-    print "Add package Result: %s" % result
+    return result[ 'value' ]

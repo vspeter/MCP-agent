@@ -80,10 +80,16 @@ def doRequires( state ):
   env['DEBIAN_PRIORITY'] = 'critical'
   env['DEBIAN_FRONTEND'] = 'noninteractive'
 
-  reqired_list = execute_lines( '%s %s' % ( MAKE_CMD, state[ 'requires' ] ), state[ 'dir' ], env=env )
-  for reqired in reqired_list:
-    logging.info( 'interate: installing "%s"' % reqired )
-    execute( '%s install -y %s' % ( APT_GET_CMD, reqired ) )
+  required_list = execute_lines( '%s %s' % ( MAKE_CMD, state[ 'requires' ] ), state[ 'dir' ], env=env )
+  if required_list[0].startswith( 'make: Nothing to be done' ):
+    return
+
+  for required in required_list:
+    required = required.strip()
+    if not required:
+      continue
+    logging.info( 'interate: installing "%s"' % required )
+    execute( '%s install -y %s' % ( APT_GET_CMD, required ) )
 
 
 def doTarget( state, packrat, mcp ):
@@ -94,14 +100,18 @@ def doTarget( state, packrat, mcp ):
     mcp.setResults( '\n'.join( results ) )
     return False
 
+  if results[0].startswith( 'make: Nothing to be done' ):
+    mcp.setResults( '' )
+    return True
+
   mcp.setResults( '\n'.join( results ) )
 
   if state[ 'target' ] in ( 'dpkg', 'rpm', 'resource' ):
     mcp.sendStatus( 'Package Build' )
-    file_name = execute_lines( '%s %s-file' % ( MAKE_CMD, state[ 'target' ] ), state[ 'dir' ] )[-1]
+    file_name = os.path.join( state[ 'dir' ], execute_lines( '%s %s-file' % ( MAKE_CMD, state[ 'target' ] ), state[ 'dir' ] )[-1] )
     file = open( file_name, 'r' )
     try:
-      packrat.addPackageFile( file, 'Package File "%s"' % os.path.basename( file_name ), 'MCP Auto Build from %s.  Build on %s at %s' % ( state[ 'url' ], socket.getfqdn(), datetime.utcnow() ) )
+      result = packrat.addPackageFile( file, 'Package File "%s"' % os.path.basename( file_name ), 'MCP Auto Build from %s.  Build on %s at %s' % ( state[ 'url' ], socket.getfqdn(), datetime.utcnow() ) )
     except Exception as e:
       logging.exception( 'iterate: Exception "%s" while adding package file "%s"' % ( e, file_name ) )
       mcp.setResults( 'Exception adding package file' )
@@ -109,6 +119,10 @@ def doTarget( state, packrat, mcp ):
       return False
 
     file.close()
+    if not result:
+      mcp.sendStatus( 'Packge NOT Uploaded' )
+      return False
+
     mcp.sendStatus( 'Package Uploaded' )
 
   return True
