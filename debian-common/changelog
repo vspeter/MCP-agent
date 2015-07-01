@@ -1,4 +1,4 @@
-nullunit (0.2-6) DIST; urgency=medium
+nullunit (0.2-7) DIST; urgency=medium
 
   * added nullunitInterface, MasterSync, AddPackageFile
   * updateing Makefile to make packageable

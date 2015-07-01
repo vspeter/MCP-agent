@@ -48,6 +48,7 @@ def doStep( state, mcp, packrat ):
     if doTarget( state, packrat, mcp ):
       state[ 'state' ] = 'done'
       mcp.setSuccess( True )
+
     else:
       state[ 'state' ] = 'failed'
       mcp.setSuccess( False )
@@ -80,11 +81,18 @@ def doRequires( state ):
   env['DEBIAN_PRIORITY'] = 'critical'
   env['DEBIAN_FRONTEND'] = 'noninteractive'
 
-  required_list = execute_lines( '%s %s' % ( MAKE_CMD, state[ 'requires' ] ), state[ 'dir' ], env=env )
-  if required_list[0].startswith( 'make: Nothing to be done' ):
+  try:
+    results = execute_lines( '%s %s' % ( MAKE_CMD, state[ 'requires' ] ), state[ 'dir' ], env=env )
+  except NonZeroException as e:
+    if results[0].startswith( 'make: *** No rule to make target' ):
+      return
+
+    raise e
+
+  if results[0].startswith( 'make: Nothing to be done' ):
     return
 
-  for required in required_list:
+  for required in results:
     required = required.strip()
     if not required:
       continue
