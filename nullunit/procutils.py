@@ -58,14 +58,18 @@ def _execute( cmd, dir, stdout, stdin, env ):
   return ( results, proc.returncode )
 
 
-def execute( cmd, dir=None, stdin=None, env=global_env, ok_rc=None ):
+def execute( cmd, dir=None, stdin=None, env=global_env ):
   ( _, rc ) = _execute( cmd, dir, None, stdin, env )
-  if rc not in ( ok_rc if ok_rc is not None else [ 0 ] ):
+  if rc != 0:
     raise Exception( 'Error Executing "%s", rc: %s' % ( cmd, rc ) )
 
 
-def execute_lines( cmd, dir=None, stdin=None, env=global_env, ok_rc=None ):
+def execute_lines( cmd, dir=None, stdin=None, env=global_env, error_cb=None ):
   ( results, rc ) = _execute( cmd, dir, subprocess.PIPE, stdin, env )
-  if rc not in ( ok_rc if ok_rc is not None else [ 0 ] ):
+  if error_cb and error_cb( results, rc ):
     raise Exception( 'Error Executing "%s", rc: %s' % ( cmd, rc ) )
+
+  elif rc != 0:
+    raise Exception( 'Error Executing "%s", rc: %s' % ( cmd, rc ) )
+
   return results.splitlines()

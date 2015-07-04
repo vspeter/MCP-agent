@@ -4,6 +4,7 @@ import glob
 import shutil
 import logging
 import socket
+import re
 from datetime import datetime
 
 from procutils import execute, execute_lines
@@ -14,8 +15,29 @@ MAKE_CMD = '/usr/bin/make'
 WRK_DIR = '/nullunit'
 APT_GET_CMD = '/usr/bin/apt-get'
 
-def _makeDidNotthing( results ):
-  return len( results ) == 1 and ( results[0].startswith( 'make: Nothing to be done' ) or results[0].startswith( 'make: *** No rule to make' ) )
+def _makeDidNothing( results ):
+  if len( results ) != 1:
+    return False
+
+  # make sure something like "make: *** No rule to make target `XXXX', needed by `XXXX'.  Stop." still fails
+  if re.search( '^make: \*\*\* No rule to make [^,.]*.  Stop\.$', results[0] ):
+    return True
+
+  if re.search( '^make: Nothing to be done for [^,.]*.$', results[0] ):
+    return True
+
+  return False
+
+
+def makeErrorCB( results, rc ):
+  if rc == 0:
+    return False
+
+  if rc == 2 and _makeDidNothing( results ):
+    return False
+
+  return True
+
 
 def readState( file ):
   try:
@@ -86,10 +108,7 @@ def doRequires( state ):
   env = os.environ
   env['DEBIAN_PRIORITY'] = 'critical'
   env['DEBIAN_FRONTEND'] = 'noninteractive'
-  results = execute_lines( '%s %s' % ( MAKE_CMD, state[ 'requires' ] ), state[ 'dir' ], env=env, ok_rc=[ 0, 2 ] )
-
-  if _makeDidNotthing( results ):
-    return
+  results = execute_lines( '%s %s' % ( MAKE_CMD, state[ 'requires' ] ), state[ 'dir' ], env=env, error_cb=makeErrorCB )
 
   for required in results:
     required = required.strip()
@@ -102,9 +121,9 @@ def doRequires( state ):
 
 def doTarget( state, packrat, mcp ):
   logging.info( 'iterate: executing target "%s"' % state[ 'target' ] )
-  results = execute_lines( '%s %s' % ( MAKE_CMD, state[ 'target' ] ), state[ 'dir' ], ok_rc=[ 0, 2 ] )
+  results = execute_lines( '%s %s' % ( MAKE_CMD, state[ 'target' ] ), state[ 'dir' ], error_cb=makeErrorCB )
 
-  if _makeDidNotthing( results ):
+  if _makeDidNothing( results ):
     mcp.setResults( '' )
     return True
 
@@ -113,8 +132,8 @@ def doTarget( state, packrat, mcp ):
   if state[ 'target' ] in ( 'dpkg', 'rpm', 'resource' ):
     logging.info( 'iterate: getting package file "%s"' % state[ 'requires' ] )
     mcp.sendStatus( 'Package Build' )
-    results = execute_lines( '%s %s-file' % ( MAKE_CMD, state[ 'target' ] ), state[ 'dir' ], ok_rc=[ 0, 2 ] )
-    if not results or _makeDidNotthing( results ):
+    results = execute_lines( '%s %s-file' % ( MAKE_CMD, state[ 'target' ] ), state[ 'dir' ], error_cb=makeErrorCB )
+    if not results:
       raise Exception( 'package target did not return a file to upload' )
 
     for file_name in results:
