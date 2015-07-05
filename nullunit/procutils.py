@@ -8,13 +8,15 @@ debug_stdout = None
 
 global_env = os.environ
 
+#TODO: would be nice to cmd output to debug log, and write to debug_stdout as it goes,
+#      unfontuntally that will require some pipes and magic, Popen expets a .fileno on the writer sent to it
 
 def open_output( filename ):
   global debug_stdout
   debug_stdout = open( filename, 'w' )
 
 
-def _execute( cmd, dir, stdout, stdin, env ):
+def _execute( cmd, dir, stdin, env ):
   logging.info( 'procutils: executing "%s" in "%s"' % ( cmd, dir ) )
   debug_stdout.write( '\n=================================================\n' )
   debug_stdout.write( '%s\n' % datetime.utcnow() )
@@ -32,21 +34,23 @@ def _execute( cmd, dir, stdout, stdin, env ):
             'args': shlex.split( cmd ),
             'cwd': dir,
             'env': env,
-            'stdout': ( stdout if stdout is not None else debug_stdout ),
+            'stdout': subprocess.PIPE,
             'stderr': subprocess.STDOUT
          }
 
   try:
     if stdin:
       proc = subprocess.Popen( stdin=subprocess.PIPE, **args )
-      ( results, _ ) = proc.communicate( stdin )
+      ( stdout, _ ) = proc.communicate( stdin )
 
     else:
       proc = subprocess.Popen( **args )
-      ( results, _ ) = proc.communicate()
+      ( stdout, _ ) = proc.communicate()
 
   except Exception as e:
     raise Exception( 'Exception %s while executing "%s"' % ( e, cmd ) )
+
+  debug_stdout.write( stdout )
 
   debug_stdout.write( '\n-------------------------------------------------\n' )
   debug_stdout.write( 'rc: %s\n' % proc.returncode )
@@ -55,17 +59,17 @@ def _execute( cmd, dir, stdout, stdin, env ):
 
   logging.info( 'procutils: returned "%s"' % proc.returncode )
 
-  return ( results, proc.returncode )
+  return ( stdout[ -2000 : ], proc.returncode )
 
 
 def execute( cmd, dir=None, stdin=None, env=global_env ):
-  ( _, rc ) = _execute( cmd, dir, None, stdin, env )
+  ( _, rc ) = _execute( cmd, dir, stdin, env )
   if rc != 0:
     raise Exception( 'Error Executing "%s", rc: %s' % ( cmd, rc ) )
 
 
 def execute_lines( cmd, dir=None, stdin=None, env=global_env, error_cb=None ):
-  ( results, rc ) = _execute( cmd, dir, subprocess.PIPE, stdin, env )
+  ( results, rc ) = _execute( cmd, dir, stdin, env )
   if error_cb and error_cb( results, rc ):
     raise Exception( 'Error Executing "%s", rc: %s' % ( cmd, rc ) )
 
