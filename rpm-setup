@@ -1,4 +1,6 @@
 #!/bin/sh
+set -e
+set -x
 
 DISTRO_RELEASE="el$(lsb_release -sr | awk -F "." '{ print $1 }')_1"
 
@@ -26,7 +28,7 @@ Version:        $VERSION
 Release:        $RELEASE.$DISTRO_RELEASE
 License:        Nonfree
 Group:          nonfree/rubicon
-Requires:       python, python-simplejson, python-cinp, /usr/sbin/crond, plato-client, git, make
+Requires:       python, python-simplejson, python-cinp, /usr/sbin/crond, plato-client, git, make, redhat-lsb-core
 BuildArch:      noarch
 
 %description
@@ -37,6 +39,8 @@ cd %{_srcdir}
 ./setup.py build
 ./setup.py install --prefix=%{buildroot}/usr
 make install DESTDIR=%{buildroot}/
+mkdir -p %{buildroot}/etc/cron.d
+cp debian-common/cron.d %{buildroot}/etc/cron.d/nullunit
 
 %files
 /*
@@ -44,9 +48,14 @@ make install DESTDIR=%{buildroot}/
 %changelog
 
 %post
+echo "Rebuilding config files..."
 /usr/sbin/configManager -c nullunit
 
-/etc/init.d/crond reload
+echo "Reloading cron..."
+/etc/init.d/cron reload || true
+
+echo "Creating state dir..."
+mkdir -p /var/lib/mcp
 
 %postun
 

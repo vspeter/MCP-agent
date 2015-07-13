@@ -1,4 +1,11 @@
-nullunit (0.2-13) DIST; urgency=medium
+nullunit (0.3-1) DIST; urgency=medium
+
+  * rpm support
+  * fixes
+
+ -- Peter <peter@blueboy>  Wed, 10 Jun 2015 16:30:23 -0600
+
+nullunit (0.2-1) DIST; urgency=medium
 
   * added nullunitInterface, MasterSync, AddPackageFile
   * updateing Makefile to make packageable

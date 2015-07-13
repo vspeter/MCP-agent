@@ -31,7 +31,7 @@ def _execute( cmd, dir, stdin, env ):
   debug_stdout.flush()
 
   args = {
-            'args': shlex.split( cmd ),
+            'args': shlex.split( cmd.encode( 'ascii' ) ), # the .encode ascii is for python 2.6.6 shlex bug
             'cwd': dir,
             'env': env,
             'stdout': subprocess.PIPE,

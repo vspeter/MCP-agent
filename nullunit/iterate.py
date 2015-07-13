@@ -9,11 +9,16 @@ from datetime import datetime
 
 from procutils import execute, execute_lines
 
-
 GIT_CMD = '/usr/bin/git'
 MAKE_CMD = '/usr/bin/make'
 WRK_DIR = '/nullunit'
-APT_GET_CMD = '/usr/bin/apt-get'
+
+if os.path.exists( '/usr/bin/apt-get' ):
+  PKG_INSTAL = '/usr/bin/apt-get install -y %s'
+elif os.path.exists( '/usr/bin/yum' ):
+  PKG_INSTAL = '/usr/bin/yum install -y %s'
+else:
+  raise Exception( 'can\'t detect package manager' )
 
 def _makeDidNothing( results ):
   if len( results ) != 1:
@@ -116,7 +121,7 @@ def doRequires( state ):
       continue
 
     logging.info( 'iterate: installing "%s"' % required )
-    execute( '%s install -y %s' % ( APT_GET_CMD, required ) )
+    execute( PKG_INSTAL % required )
 
 
 def doTarget( state, packrat, mcp ):
