@@ -59,6 +59,9 @@ def _execute( cmd, dir, stdin, env ):
 
   logging.info( 'procutils: returned "%s"' % proc.returncode )
 
+  if proc.returncode == 200:
+    raise Exception( 'return code 200, bail requested' )
+
   return ( stdout[ -2000 : ], proc.returncode )
 
 
