@@ -10,7 +10,7 @@ oparser = OptionParser( description='nullunit Add Package File' )
 
 oparser.add_option( '-v', '--verbose', dest='verbose', default=False, action='store_true' )
 
-oparser.add_option( '-d', '--distro', help='Set the distro, needed when packrat is unable to auto-detect the distro (optional)', dest='disto', default=None )
+oparser.add_option( '-d', '--distro', help='Set the distro, needed when packrat is unable to auto-detect the distro (optional)', dest='distro', default=None )
 oparser.add_option( '-j', '--justification', help='Justification for the package file', dest='justification', default=None )
 oparser.add_option( '-p', '--provenance', help='Provenance for the package file', dest='provenance', default=None )
 
@@ -35,5 +35,15 @@ if not packrat:
   sys.exit( 1 )
 
 file = open( args[0], 'r' )
-packrat.addPackageFile( file, options.justification, options.provenance )
+result = packrat.addPackageFile( file, options.justification, options.provenance, options.distro )
 file.close()
+
+if isinstance( result, list ):
+  print 'Unable to auto detect distro, re-call passing -d with one of the following "%s"' % result
+  sys.exit( 1 )
+
+if result is not True:
+  print 'Unexpected result "%s"' % result
+  sys.exit( 1 )
+
+sys.exit( 0 )
