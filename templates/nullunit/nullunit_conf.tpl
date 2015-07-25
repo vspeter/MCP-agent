@@ -2,17 +2,24 @@
 # generated at {{ timestamp }}
 # for device {{ description }}, id: {{ id }}
 
-[nullunit]
+[mcp]
 host: {{ mcp_host }}
 proxy: {{ mcp_proxy }}
-build: {{ mcp_build }}
-resource: {{ mcp_resource }}
+job_id: {{ mcp_job_id }}
+resource_name: {{ mcp_resource_name }}
+resource_index: {{ mcp_resource_index }}
 
-git_url: {{ mcp_git_url }}
+[git]
+url: {{ mcp_git_url }}
 branch: {{ mcp_git_branch }}
-target: {{ mcp_target }}
+
+[make]
+requires: {{ mcp_make_requires }}
+target: {{ mcp_make_target }}
 
 [packrat]
 host: {{ packrat_host }}
 proxy: {{ packrat_proxy }}
+name: {{ packrat_builder_name }}
+psk: {{ packrat_builder_psk }}
 {% endtarget %}

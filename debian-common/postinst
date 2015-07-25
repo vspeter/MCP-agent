@@ -29,6 +29,9 @@ case "$1" in
 
         echo "Reloading cron..."
         /etc/init.d/cron reload || true
+
+        echo "Creating state dir..."
+        mkdir -p /var/lib/mcp
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)

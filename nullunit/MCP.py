@@ -4,11 +4,46 @@ from cinp import client
 DISTRO_VERSION_CACHE = {}
 
 class MCP( object ):
-  def __init__( self, host, proxy, build, resource  ):
+  def __init__( self, host, proxy, job_id, name, index  ):
     self.cinp = client.CInP( host, '/api/v1', proxy )
-    self.build = resource
-    self.resource = resource
+    self.job_id = job_id
+    self.name = name
+    self.index = index
+
+  def signalJobRan( self ):
+    logging.info( 'MCP: Signal Job Ran' )
+    self.cinp.call( '/api/v1/Processor/BuildJob:%s:(jobRan)' % self.job_id, {} )
 
   def sendStatus( self, status ):
     logging.info( 'MCP: Status "%s"' % status )
-    self.cinp.call( '/api/v1/Processor/BuildJob:%s:(setStatus)' % self.build, { 'resource': self.resource, 'status': status } )
+    self.cinp.call( '/api/v1/Processor/BuildJob:%s:(updateResourceState)' % self.job_id, { 'name': self.name, 'index': self.index, 'status': status } )
+
+  def setSuccess( self, success ):
+    logging.info( 'MCP: Success "%s"' % success )
+    self.cinp.call( '/api/v1/Processor/BuildJob:%s:(setResourceSuccess)' % self.job_id, { 'name': self.name, 'index': self.index, 'success': success } )
+
+  def setResults( self, results ):
+    logging.info( 'MCP: Results "%s"' % results[ :100 ].strip() )
+    self.cinp.call( '/api/v1/Processor/BuildJob:%s:(setResourceResults)' % self.job_id, { 'name': self.name, 'index': self.index, 'results': results } )
+
+  def getConfigStatus( self, resource, index=None, count=None ):
+    logging.info( 'MCP: Config Status for "%s" index: "%s", count: "%s"' % ( resource, index, count ) )
+    args = { 'name': resource }
+    if index is not None:
+      args[ 'index' ] = index
+
+    if count is not None:
+      args[ 'count' ] = count
+
+    return self.cinp.call( '/api/v1/Processor/BuildJob:%s:(getConfigStatus)' % self.job_id, args )[ 'value' ]
+
+  def getProvisioningInfo( self, resource, index=None, count=None ):
+    logging.info( 'MCP: Provisioning Info for "%s" index: "%s", count: "%s"' % ( resource, index, count ) )
+    args = { 'name': resource }
+    if index is not None:
+      args[ 'index' ] = index
+
+    if count is not None:
+      args[ 'count' ] = count
+
+    return self.cinp.call( '/api/v1/Processor/BuildJob:%s:(getProvisioningInfo)' % self.job_id, args )[ 'value' ]
