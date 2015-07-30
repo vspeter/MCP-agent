@@ -59,10 +59,7 @@ def _execute( cmd, dir, stdin, env ):
 
   logging.info( 'procutils: returned "%s"' % proc.returncode )
 
-  if proc.returncode == 200:
-    raise Exception( 'return code 200, bail requested' )
-
-  return ( stdout[ -2000 : ], proc.returncode )
+  return ( stdout[ -2000: ], proc.returncode )
 
 
 def execute( cmd, dir=None, stdin=None, env=global_env ):
@@ -70,13 +67,13 @@ def execute( cmd, dir=None, stdin=None, env=global_env ):
   if rc != 0:
     raise Exception( 'Error Executing "%s", rc: %s' % ( cmd, rc ) )
 
-
-def execute_lines( cmd, dir=None, stdin=None, env=global_env, error_cb=None ):
+def execute_lines_rc( cmd, dir=None, stdin=None, env=global_env ):
   ( results, rc ) = _execute( cmd, dir, stdin, env )
-  if error_cb and error_cb( results, rc ):
-    raise Exception( 'Error Executing "%s", rc: %s' % ( cmd, rc ) )
+  return ( results.splitlines(), rc )
 
-  elif rc != 0:
+def execute_lines( cmd, dir=None, stdin=None, env=global_env ):
+  ( results, rc ) = _execute( cmd, dir, stdin, env )
+  if rc != 0:
     raise Exception( 'Error Executing "%s", rc: %s' % ( cmd, rc ) )
 
   return results.splitlines()

@@ -28,8 +28,8 @@ oparser.add_option( '-e', '--existing', help='Overlay Configuration/Device data 
 oparser.add_option( '-p', '--pod',      help='(existing) Pod for searching(optional)\n(new) pod to create new configs in', dest='pod', default=None )
 oparser.add_option( '-o', '--offset',   help='Starting Existing offset', dest='offset', type='int' )
 
-oparser.add_option( '--auto-configure', help='(new) set to Auto configure (default: False)', dest='auto_configure', default=False, action='store_true' )
-oparser.add_option( '--priority',       help='(new) priority to set (default: 100)', dest='priority', default=100, type='int')
+oparser.add_option( '--auto-configure', help='set to Auto configure (default: False)', dest='auto_configure', default=False, action='store_true' )
+oparser.add_option( '--priority',       help='priority to set (default: 100)', dest='priority', default=100, type='int')
 oparser.add_option( '--profile',        help='config profile (new - required) (existing - optional)', dest='profile', default=None )
 
 oparser.add_option( '--ipmi', help='*MCP - use ip from MCP, <subnet> - what subnet to assign from', dest='ipmi', default=None, metavar='SUBNET' )
@@ -160,6 +160,9 @@ if options.existing:
   for config in config_list:
     src = provisioning_list.pop( 0 )
     print 'Doing plato: "%s" mcp: "%s"' % ( config.description, src[ 'description' ] )
+    config.auto_configure = options.auto_configure
+    config.configure_priority = options.priority
+    config.save()
     target = config.target
     if target.type != src[ 'type' ]:
       print 'Target type mismatch plato:"%s" mcp:"%s"' % ( target.type, src[ 'type' ] )

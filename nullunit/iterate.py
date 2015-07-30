@@ -7,16 +7,18 @@ import socket
 import re
 from datetime import datetime
 
-from procutils import execute, execute_lines
+from procutils import execute, execute_lines_rc
 
 GIT_CMD = '/usr/bin/git'
 MAKE_CMD = '/usr/bin/make'
-WRK_DIR = '/nullunit'
+WORK_DIR = '/nullunit'
 
 if os.path.exists( '/usr/bin/apt-get' ):
   PKG_INSTAL = '/usr/bin/apt-get install -y %s'
+
 elif os.path.exists( '/usr/bin/yum' ):
   PKG_INSTAL = '/usr/bin/yum install -y %s'
+
 else:
   raise Exception( 'can\'t detect package manager' )
 
@@ -32,16 +34,6 @@ def _makeDidNothing( results ):
     return True
 
   return False
-
-
-def makeErrorCB( results, rc ):
-  if rc == 0:
-    return False
-
-  if rc == 2 and _makeDidNothing( results ):
-    return False
-
-  return True
 
 
 def readState( file ):
@@ -71,8 +63,12 @@ def doStep( state, mcp, packrat ):
     state[ 'state' ] = 'requires'
 
   elif start_state == 'requires':
-    doRequires( state )
-    state[ 'state' ] = 'target'
+    if doRequires( state, mcp ):
+      state[ 'state' ] = 'target'
+
+    else:
+      state[ 'state' ] = 'failed'
+      mcp.setSuccess( False )
 
   elif start_state == 'target':
     if doTarget( state, packrat, mcp ):
@@ -89,18 +85,18 @@ def doStep( state, mcp, packrat ):
 
 def doClone( state ):
   try:
-    os.makedirs( WRK_DIR )
+    os.makedirs( WORK_DIR )
   except OSError as e:
     if e.errno == 17: # allready exists
-      shutil.rmtree( WRK_DIR )
-      os.makedirs( WRK_DIR )
+      shutil.rmtree( WORK_DIR )
+      os.makedirs( WORK_DIR )
 
     else:
       raise e
 
   logging.info( 'iterate: cloning "%s"' % state[ 'url' ] )
-  execute( '%s clone %s' % ( GIT_CMD, state[ 'url' ] ), WRK_DIR )
-  return glob.glob( '%s/*' % WRK_DIR )[0]
+  execute( '%s clone %s' % ( GIT_CMD, state[ 'url' ] ), WORK_DIR )
+  return glob.glob( '%s/*' % WORK_DIR )[0]
 
 
 def doCheckout( state ):
@@ -108,12 +104,21 @@ def doCheckout( state ):
   execute( '%s checkout %s' % ( GIT_CMD, state[ 'branch' ] ), state[ 'dir' ] )
 
 
-def doRequires( state ):
+def doRequires( state, mcp ):
   logging.info( 'iterate: getting requires "%s"' % state[ 'requires' ] )
   env = os.environ
-  env['DEBIAN_PRIORITY'] = 'critical'
-  env['DEBIAN_FRONTEND'] = 'noninteractive'
-  results = execute_lines( '%s %s' % ( MAKE_CMD, state[ 'requires' ] ), state[ 'dir' ], env=env, error_cb=makeErrorCB )
+  env[ 'DEBIAN_PRIORITY' ] = 'critical'
+  env[ 'DEBIAN_FRONTEND' ] = 'noninteractive'
+  ( results, rc ) = execute_lines_rc( '%s %s' % ( MAKE_CMD, '-s', state[ 'requires' ] ), state[ 'dir' ], env=env )
+
+  if rc != 0:
+    if rc == 2 and _makeDidNothing( results ):
+      return True
+
+    else:
+      logging.info( 'iterate: error getting requires' )
+      mcp.setResults( 'Error getting requires:\n' + '\n'.join( results ) )
+      return False
 
   for required in results:
     required = required.strip()
@@ -123,23 +128,26 @@ def doRequires( state ):
     logging.info( 'iterate: installing "%s"' % required )
     execute( PKG_INSTAL % required )
 
+  return True
 
 def doTarget( state, packrat, mcp ):
   logging.info( 'iterate: executing target "%s"' % state[ 'target' ] )
-  results = execute_lines( '%s %s' % ( MAKE_CMD, state[ 'target' ] ), state[ 'dir' ], error_cb=makeErrorCB )
+  ( results, rc ) = execute_lines_rc( '%s %s' % ( MAKE_CMD, state[ 'target' ] ), state[ 'dir' ] )
 
-  if _makeDidNothing( results ):
-    mcp.setResults( '' )
-    return True
+  if rc != 0:
+    if rc == 2 and _makeDidNothing( results ):
+      mcp.setResults( 'Nothing Built' )
+      return True
 
   mcp.setResults( '\n'.join( results ) )
 
-  if state[ 'target' ] in ( 'dpkg', 'rpm', 'resource' ):
+  if state[ 'target' ] in ( 'dpkg', 'rpm', 'resource' ): # TODO: need a pre upload version taken check
     logging.info( 'iterate: getting package file "%s"' % state[ 'requires' ] )
     mcp.sendStatus( 'Package Build' )
-    results = execute_lines( '%s %s-file' % ( MAKE_CMD, state[ 'target' ] ), state[ 'dir' ], error_cb=makeErrorCB )
-    if not results:
-      raise Exception( 'package target did not return a file to upload' )
+    ( results, rc ) = execute_lines_rc( '%s %s-file' % ( MAKE_CMD, '-s', state[ 'target' ] ), state[ 'dir' ] )
+    if rc != 0 or len( results ) == 0:
+      mcp.setResults( 'Error getting %s-file\n' % state[ 'target' ] + '\n'.join( results ) )
+      return False
 
     for file_name in results:
       file_name = os.path.join( state[ 'dir' ], file_name )
