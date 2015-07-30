@@ -1,3 +1,9 @@
+nullunit (0.4-1) DIST; urgency=medium
+
+  * make <target> -> mcp feedback improvment
+
+ -- Peter <peter@blueboy>  Wed, 10 Jun 2015 16:30:23 -0600
+
 nullunit (0.3-1) DIST; urgency=medium
 
   * rpm support
