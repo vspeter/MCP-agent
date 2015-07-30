@@ -139,6 +139,11 @@ def doTarget( state, packrat, mcp ):
       mcp.setResults( 'Nothing Built' )
       return True
 
+    else:
+      mcp.setResults( ( 'Error with target %s\n' % state[ 'target' ] ) + '\n'.join( results ) )
+      return True
+
+
   mcp.setResults( '\n'.join( results ) )
 
   if state[ 'target' ] in ( 'dpkg', 'rpm', 'resource' ): # TODO: need a pre upload version taken check
@@ -146,7 +151,7 @@ def doTarget( state, packrat, mcp ):
     mcp.sendStatus( 'Package Build' )
     ( results, rc ) = execute_lines_rc( '%s %s-file' % ( MAKE_CMD, '-s', state[ 'target' ] ), state[ 'dir' ] )
     if rc != 0 or len( results ) == 0:
-      mcp.setResults( 'Error getting %s-file\n' % state[ 'target' ] + '\n'.join( results ) )
+      mcp.setResults( ( 'Error getting %s-file\n' % state[ 'target' ] ) + '\n'.join( results ) )
       return False
 
     for file_name in results:
