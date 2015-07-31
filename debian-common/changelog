@@ -1,3 +1,9 @@
+nullunit (0.5-1) DIST; urgency=medium
+
+  * make clean and make <target>-setup for dpkg, rpm, resource targets
+
+ -- Peter <peter@blueboy>  Wed, 10 Jun 2015 16:30:23 -0600
+
 nullunit (0.4-1) DIST; urgency=medium
 
   * make <target> -> mcp feedback improvment
