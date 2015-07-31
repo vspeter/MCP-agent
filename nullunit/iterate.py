@@ -131,6 +131,22 @@ def doRequires( state, mcp ):
   return True
 
 def doTarget( state, packrat, mcp ):
+  if state[ 'target' ] in ( 'dpkg', 'rpm', 'resource' ):
+    logging.info( 'iterate: executing target clean' )
+    ( results, rc ) = execute_lines_rc( '%s clean' % MAKE_CMD, state[ 'dir' ] )
+
+    if rc != 0:
+      if rc == 2 and not _makeDidNothing( results ):
+        mcp.setResults( 'Error with clean\n' + '\n'.join( results ) )
+        return False
+
+    ( results, rc ) = execute_lines_rc( '%s %s-setup' % ( MAKE_CMD, state[ 'target' ] ), state[ 'dir' ] )
+
+    if rc != 0:
+      if rc == 2 and not _makeDidNothing( results ):
+        mcp.setResults( ( 'Error with %s-setup\n' % state[ 'target' ] ) + '\n'.join( results ) )
+        return False
+
   logging.info( 'iterate: executing target "%s"' % state[ 'target' ] )
   ( results, rc ) = execute_lines_rc( '%s %s' % ( MAKE_CMD, state[ 'target' ] ), state[ 'dir' ] )
 
