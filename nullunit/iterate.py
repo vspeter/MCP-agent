@@ -109,7 +109,7 @@ def doRequires( state, mcp ):
   env = os.environ
   env[ 'DEBIAN_PRIORITY' ] = 'critical'
   env[ 'DEBIAN_FRONTEND' ] = 'noninteractive'
-  ( results, rc ) = execute_lines_rc( '%s %s' % ( MAKE_CMD, '-s', state[ 'requires' ] ), state[ 'dir' ], env=env )
+  ( results, rc ) = execute_lines_rc( '%s -s %s' % ( MAKE_CMD, state[ 'requires' ] ), state[ 'dir' ], env=env )
 
   if rc != 0:
     if rc == 2 and _makeDidNothing( results ):
@@ -165,7 +165,7 @@ def doTarget( state, packrat, mcp ):
   if state[ 'target' ] in ( 'dpkg', 'rpm', 'resource' ): # TODO: need a pre upload version taken check
     logging.info( 'iterate: getting package file "%s"' % state[ 'requires' ] )
     mcp.sendStatus( 'Package Build' )
-    ( results, rc ) = execute_lines_rc( '%s %s-file' % ( MAKE_CMD, '-s', state[ 'target' ] ), state[ 'dir' ] )
+    ( results, rc ) = execute_lines_rc( '%s -s %s-file' % ( MAKE_CMD, state[ 'target' ] ), state[ 'dir' ] )
     if rc != 0 or len( results ) == 0:
       mcp.setResults( ( 'Error getting %s-file\n' % state[ 'target' ] ) + '\n'.join( results ) )
       return False
