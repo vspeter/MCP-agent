@@ -86,6 +86,7 @@ def doStep( state, mcp, packrat ):
 def doClone( state ):
   try:
     os.makedirs( WORK_DIR )
+
   except OSError as e:
     if e.errno == 17: # allready exists
       shutil.rmtree( WORK_DIR )
@@ -148,21 +149,20 @@ def doTarget( state, packrat, mcp ):
         return False
 
   logging.info( 'iterate: executing target "%s"' % state[ 'target' ] )
-  ( results, rc ) = execute_lines_rc( '%s %s' % ( MAKE_CMD, state[ 'target' ] ), state[ 'dir' ] )
+  ( target_results, rc ) = execute_lines_rc( '%s %s' % ( MAKE_CMD, state[ 'target' ] ), state[ 'dir' ] )
 
   if rc != 0:
-    if rc == 2 and _makeDidNothing( results ):
+    if rc == 2 and _makeDidNothing( target_results ):
       mcp.setResults( 'Nothing Built' )
       return True
 
     else:
       mcp.setResults( ( 'Error with target %s\n' % state[ 'target' ] ) + '\n'.join( results ) )
-      return True
+      return False
 
+  mcp.setResults( '\n'.join( target_results ) )
 
-  mcp.setResults( '\n'.join( results ) )
-
-  if state[ 'target' ] in ( 'dpkg', 'rpm', 'resource' ): # TODO: need a pre upload version taken check
+  if state[ 'target' ] in ( 'dpkg', 'rpm', 'resource' ):
     logging.info( 'iterate: getting package file "%s"' % state[ 'requires' ] )
     mcp.sendStatus( 'Package Build' )
     ( results, rc ) = execute_lines_rc( '%s -s %s-file' % ( MAKE_CMD, state[ 'target' ] ), state[ 'dir' ] )
@@ -170,12 +170,20 @@ def doTarget( state, packrat, mcp ):
       mcp.setResults( ( 'Error getting %s-file\n' % state[ 'target' ] ) + '\n'.join( results ) )
       return False
 
+    for file_name in list( results ):
+      if packrat.checkFileName( file_name ):
+        mcp.setResult( 'Filename "%s" is allready in use in packrat, skipping the file in upload.' % file_name )
+        results.remove( file_name )
+
     for file_name in results:
-      file_name = os.path.join( state[ 'dir' ], file_name )
+      if file_name[0] != '/': #it's not an aboslute path, prefix is with the working dir
+        file_name = os.path.realpath( os.path.join( state[ 'dir' ], file_name ) )
+
       logging.info( 'iterate: uploading "%s"' % file_name )
       src = open( file_name, 'r' )
       try:
         result = packrat.addPackageFile( src, 'Package File "%s"' % os.path.basename( file_name ), 'MCP Auto Build from %s.  Build on %s at %s' % ( state[ 'url' ], socket.getfqdn(), datetime.utcnow() ) )
+
       except Exception as e:
         logging.exception( 'iterate: Exception "%s" while adding package file "%s"' % ( e, file_name ) )
         mcp.setResults( 'Exception adding package file' )
@@ -183,10 +191,18 @@ def doTarget( state, packrat, mcp ):
         return False
 
       src.close()
+
+      target_results.append( 'File "%s" uploaded.' % file_name )
+
       if not result:
         mcp.sendStatus( 'Packge(s) NOT (all) Uploaded' )
         return False
 
+      if not packrat.checkFileName( os.path.basename( file_name ) ):
+        raise Exception( 'Recently added file "%s" not showing in packrat.' % os.path.basename( file_name ) )
+
     mcp.sendStatus( 'Package(s) Uploaded' )
+
+    mcp.setResults( '\n'.join( target_results ) )
 
   return True

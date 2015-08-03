@@ -22,13 +22,15 @@ clean:
 full-clean: clean
 	$(RM) -fr debian
 	$(RM) -fr rpmbuild
+	$(RM) -f dpkg-setup
+	$(RM) -f rpm-setup
 
 test-distros:
 	echo precise trusty centos6
 
 test-requires:
 ifeq (centos, $(DISTRO))
-  echo pytest
+	echo pytest
 else ifeq (precise, $(DISTRO_NAME))
 	echo python-py
 else
@@ -54,8 +56,11 @@ dpkg-distros:
 dpkg-requires:
 	echo dpkg-dev debhelper cdbs
 
-dpkg:
+dpkg-setup:
 	./debian-setup
+	touch dpkg-setup
+
+dpkg:
 	dpkg-buildpackage -b -us -uc > /tmp/dpkg-build.log 2>&1
 	touch dpkg
 
@@ -68,8 +73,11 @@ rpm-distros:
 rpm-requires:
 	echo rpm-build
 
+rpm-setup:
+	./rpmbuild-setup
+	touch rpm-setup
+
 rpm:
-	./rpm-setup
 	rpmbuild -v -bb rpmbuild/config.spec > /tmp/rpm-build.log 2>&1
 	touch rpm
 

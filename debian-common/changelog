@@ -1,3 +1,10 @@
+nullunit (0.6-1) DIST; urgency=medium
+
+  * Checkes to make sure the filename isn't in use before uploading to packrat
+  * *-file can be absolute
+
+ -- Peter <peter@blueboy>  Wed, 10 Jun 2015 16:30:23 -0600
+
 nullunit (0.5-1) DIST; urgency=medium
 
   * make clean and make <target>-setup for dpkg, rpm, resource targets

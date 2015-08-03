@@ -22,3 +22,7 @@ class Packrat( object ):
     logging.info( 'Packrat: Adding file "%s", justification: "%s", provenance: "%s", distro: "%s"' % ( file_uri, justification, provenance, version ) )
     result = self.cinp.call( '/api/v1/Repos/PackageFile(create)', { 'file': file_uri, 'justification': justification, 'provenance': provenance, 'version': version }, timeout=120 ) # it can sometimes take a while for packrat to commit large files
     return result[ 'value' ]
+
+  def checkFileName( self, file_name ):
+    result = self.cinp.call( '/api/v1/Repos/PackageFile(filenameInUse)', { 'file_name': file_name } )
+    return result[ 'value' ] == 'true'
