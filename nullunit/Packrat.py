@@ -25,4 +25,4 @@ class Packrat( object ):
 
   def checkFileName( self, file_name ):
     result = self.cinp.call( '/api/v1/Repos/PackageFile(filenameInUse)', { 'file_name': file_name } )
-    return result[ 'value' ] == 'true'
+    return result[ 'value' ]

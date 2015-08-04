@@ -170,14 +170,15 @@ def doTarget( state, packrat, mcp ):
       mcp.setResults( ( 'Error getting %s-file\n' % state[ 'target' ] ) + '\n'.join( results ) )
       return False
 
-    for file_name in list( results ):
-      if packrat.checkFileName( file_name ):
-        mcp.setResult( 'Filename "%s" is allready in use in packrat, skipping the file in upload.' % file_name )
-        results.remove( file_name )
-
     for file_name in results:
       if file_name[0] != '/': #it's not an aboslute path, prefix is with the working dir
         file_name = os.path.realpath( os.path.join( state[ 'dir' ], file_name ) )
+
+      if packrat.checkFileName( os.path.basename( file_name ) ):
+        mcp.setResults( 'Filename "%s" is allready in use in packrat, skipping the file in upload.' % os.path.basename( file_name ) )
+        logging.warning( 'Filename ""%s" allready on packrat, skipping...' % os.path.basename( file_name ) )
+        target_results.append( '=== File "%s" skipped.' % os.path.basename( file_name ) )
+        continue
 
       logging.info( 'iterate: uploading "%s"' % file_name )
       src = open( file_name, 'r' )
@@ -192,7 +193,7 @@ def doTarget( state, packrat, mcp ):
 
       src.close()
 
-      target_results.append( 'File "%s" uploaded.' % file_name )
+      target_results.append( '=== File "%s" uploaded.' % os.path.basename( file_name ) )
 
       if not result:
         mcp.sendStatus( 'Packge(s) NOT (all) Uploaded' )
