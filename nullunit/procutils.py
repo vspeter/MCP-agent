@@ -2,6 +2,8 @@ import subprocess
 import os
 import shlex
 import logging
+import re
+import string
 from datetime import datetime
 
 debug_stdout = None
@@ -10,6 +12,8 @@ global_env = os.environ
 
 #TODO: would be nice to cmd output to debug log, and write to debug_stdout as it goes,
 #      unfontuntally that will require some pipes and magic, Popen expets a .fileno on the writer sent to it
+
+printable = re.compile( '[^%s]' % string.printable )
 
 def open_output( filename ):
   global debug_stdout
@@ -59,7 +63,7 @@ def _execute( cmd, dir, stdin, env ):
 
   logging.info( 'procutils: returned "%s"' % proc.returncode )
 
-  return ( stdout[ -2000: ], proc.returncode )
+  return ( printable.sub( '', stdout )[ -2000: ], proc.returncode )
 
 
 def execute( cmd, dir=None, stdin=None, env=global_env ):

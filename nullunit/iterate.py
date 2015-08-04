@@ -27,10 +27,10 @@ def _makeDidNothing( results ):
     return False
 
   # make sure something like "make: *** No rule to make target `XXXX', needed by `XXXX'.  Stop." still fails
-  if re.search( '^make: \*\*\* No rule to make [^,.]*.  Stop\.$', results[0] ):
+  if re.search( '^make: \*\*\* No rule to make .* Stop\.$', results[0] ):
     return True
 
-  if re.search( '^make: Nothing to be done for [^,.]*.$', results[0] ):
+  if re.search( '^make: Nothing to be done for .*\.$', results[0] ):
     return True
 
   return False
@@ -157,7 +157,7 @@ def doTarget( state, packrat, mcp ):
       return True
 
     else:
-      mcp.setResults( ( 'Error with target %s\n' % state[ 'target' ] ) + '\n'.join( results ) )
+      mcp.setResults( ( 'Error with target %s\n' % state[ 'target' ] ) + '\n'.join( target_results ) )
       return False
 
   mcp.setResults( '\n'.join( target_results ) )
