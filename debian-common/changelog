@@ -1,3 +1,10 @@
+nullunit (0.7-1) DIST; urgency=medium
+
+  * Subprocess output cleanup
+  * Bug fixes
+
+ -- Peter <peter@blueboy>  Wed, 10 Jun 2015 16:30:23 -0600
+
 nullunit (0.6-1) DIST; urgency=medium
 
   * Checkes to make sure the filename isn't in use before uploading to packrat
