@@ -7,7 +7,7 @@ import logging
 import ConfigParser
 from logging.handlers import SysLogHandler
 
-from nullunit.common import getConfig, getMCP, getPackrat
+from nullunit.common import getConfig, getMCP
 from nullunit.iterate import readState, writeState, doStep
 from nullunit.procutils import open_output
 
@@ -52,11 +52,6 @@ if not mcp:
   os.unlink( PID_FILE )
   sys.exit( 1 )
 
-packrat = getPackrat( config )
-if not packrat:
-  os.unlink( PID_FILE )
-  sys.exit( 1 )
-
 try:
   state = readState( STATE_FILE )
 except ConfigParser.Error as e:
@@ -79,6 +74,7 @@ if state[ 'state' ] in ( 'done', 'failed' ):
   if config.get( 'make', 'target' ) in ( 'lint', 'test', 'dpkg', 'rpm', 'resource' ):
     logging.info( 'Signaling Job Ran')
     mcp.signalJobRan()
+
   logging.info( 'Task Complete' )
   os.unlink( PID_FILE )
   logging.shutdown()
@@ -87,16 +83,16 @@ if state[ 'state' ] in ( 'done', 'failed' ):
 open_output( '/tmp/nullunitIterate_debug.%s.log' % os.getpid() )
 
 try:
-  doStep( state, mcp, packrat )
+  doStep( state, mcp, config )
 except Exception as e:
   logging.exception( 'Exception in doStep for "%s".' % state[ 'state' ] )
-  mcp.sendStatus( 'Exception "%s"' % e )
+  mcp.sendStatus( 'Exception: (%s) "%s"' % ( e.__class__.__name__, e ) )
   logging.shutdown()
   sys.exit( 1 )
 
 logging.info( 'Writing State' )
 writeState( STATE_FILE, state )
-os.unlink( PID_FILE )
 logging.info( 'Done' )
+os.unlink( PID_FILE )
 logging.shutdown()
 sys.exit( 0 )

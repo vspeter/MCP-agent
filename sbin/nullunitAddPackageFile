@@ -40,10 +40,13 @@ file.close()
 
 if isinstance( result, list ):
   print 'Unable to auto detect distro, re-call passing -d with one of the following "%s"' % result
+  packrat.logout()
   sys.exit( 1 )
 
 if result is not True:
   print 'Unexpected result "%s"' % result
+  packrat.logout()
   sys.exit( 1 )
 
+packrat.logout()
 sys.exit( 0 )

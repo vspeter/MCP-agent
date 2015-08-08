@@ -1,7 +1,6 @@
 import logging
-from cinp import client
 
-DISTRO_VERSION_CACHE = {}
+from cinp import client
 
 class MCP( object ):
   def __init__( self, host, proxy, job_id, name, index  ):

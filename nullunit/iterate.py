@@ -6,6 +6,7 @@ import logging
 import socket
 import re
 from datetime import datetime
+from nullunit.common import getPackrat
 
 from procutils import execute, execute_lines_rc
 
@@ -49,7 +50,7 @@ def writeState( file, state ):
   open( file, 'w' ).write( json.dumps( state ) )
 
 
-def doStep( state, mcp, packrat ):
+def doStep( state, mcp, config ):
   start_state = state[ 'state' ]
   mcp.sendStatus( 'Executing Stage "%s"' % start_state )
   logging.info( 'iterate: Executing Stage "%s"' % start_state )
@@ -71,7 +72,7 @@ def doStep( state, mcp, packrat ):
       mcp.setSuccess( False )
 
   elif start_state == 'target':
-    if doTarget( state, packrat, mcp ):
+    if doTarget( state, mcp, config ):
       state[ 'state' ] = 'done'
       mcp.setSuccess( True )
 
@@ -131,8 +132,12 @@ def doRequires( state, mcp ):
 
   return True
 
-def doTarget( state, packrat, mcp ):
-  if state[ 'target' ] in ( 'dpkg', 'rpm', 'resource' ):
+def doTarget( state, mcp, config ):
+  if state[ 'target' ] in ( 'dpkg', 'rpm', 'rpkg', 'resource' ):
+    packrat = getPackrat( config )
+    if not packrat:
+      raise Exception( 'iterate: Error Connecting to packrat' )
+
     logging.info( 'iterate: executing target clean' )
     ( results, rc ) = execute_lines_rc( '%s clean' % MAKE_CMD, state[ 'dir' ] )
 
@@ -162,7 +167,7 @@ def doTarget( state, packrat, mcp ):
 
   mcp.setResults( '\n'.join( target_results ) )
 
-  if state[ 'target' ] in ( 'dpkg', 'rpm', 'resource' ):
+  if state[ 'target' ] in ( 'dpkg', 'rpm', 'rpkg', 'resource' ):
     logging.info( 'iterate: getting package file "%s"' % state[ 'requires' ] )
     mcp.sendStatus( 'Package Build' )
     ( results, rc ) = execute_lines_rc( '%s -s %s-file' % ( MAKE_CMD, state[ 'target' ] ), state[ 'dir' ] )
@@ -171,6 +176,11 @@ def doTarget( state, packrat, mcp ):
       return False
 
     for file_name in results:
+      try:
+        ( file_name, version ) = file_name.split( ':' )
+      except ValueError:
+        version = None
+
       if file_name[0] != '/': #it's not an aboslute path, prefix is with the working dir
         file_name = os.path.realpath( os.path.join( state[ 'dir' ], file_name ) )
 
@@ -183,7 +193,7 @@ def doTarget( state, packrat, mcp ):
       logging.info( 'iterate: uploading "%s"' % file_name )
       src = open( file_name, 'r' )
       try:
-        result = packrat.addPackageFile( src, 'Package File "%s"' % os.path.basename( file_name ), 'MCP Auto Build from %s.  Build on %s at %s' % ( state[ 'url' ], socket.getfqdn(), datetime.utcnow() ) )
+        result = packrat.addPackageFile( src, 'Package File "%s"' % os.path.basename( file_name ), 'MCP Auto Build from %s.  Build on %s at %s' % ( state[ 'url' ], socket.getfqdn(), datetime.utcnow() ), version )
 
       except Exception as e:
         logging.exception( 'iterate: Exception "%s" while adding package file "%s"' % ( e, file_name ) )
@@ -193,6 +203,9 @@ def doTarget( state, packrat, mcp ):
 
       src.close()
 
+      if isinstance( result, list ):
+        raise Exception( 'Packrat was unable to detect distro, options are "%s"' % result )
+
       target_results.append( '=== File "%s" uploaded.' % os.path.basename( file_name ) )
 
       if not result:
@@ -201,6 +214,8 @@ def doTarget( state, packrat, mcp ):
 
       if not packrat.checkFileName( os.path.basename( file_name ) ):
         raise Exception( 'Recently added file "%s" not showing in packrat.' % os.path.basename( file_name ) )
+
+    packrat.logout()
 
     mcp.sendStatus( 'Package(s) Uploaded' )
 
