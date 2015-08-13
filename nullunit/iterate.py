@@ -105,6 +105,10 @@ def doCheckout( state ):
   logging.info( 'iterate: checking out "%s"' % state[ 'branch' ] )
   execute( '%s checkout %s' % ( GIT_CMD, state[ 'branch' ] ), state[ 'dir' ] )
 
+  for ( root, dirname_list, filename_list ) in os.walk( state[ 'dir' ] ):  # go through and `touch` everything.
+    for filename in filename_list:                                         # clock skew is a fact of life, we are building everything anyway
+      os.utime( os.path.join( root, filename ) )                           # this helps make not complain about the future
+
 
 def doRequires( state, mcp ):
   logging.info( 'iterate: getting requires "%s"' % state[ 'requires' ] )
@@ -123,6 +127,9 @@ def doRequires( state, mcp ):
       return False
 
   for required in results:
+    if required.startswith( 'make:' ): # make was unhappy about something, skip that line.... if it was important it will come out later
+      continue
+
     required = required.strip()
     if not required:
       continue
