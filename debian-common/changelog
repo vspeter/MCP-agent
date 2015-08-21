@@ -1,3 +1,10 @@
+nullunit (0.10-1) DIST; urgency=medium
+
+  * rpkg to respkg
+  * pass to Makefile resource name index
+
+ -- Peter <peter@blueboy>  Wed, 10 Jun 2015 16:30:23 -0600
+
 nullunit (0.9-1) DIST; urgency=medium
 
   * Fixing some Make file and time slew problems
