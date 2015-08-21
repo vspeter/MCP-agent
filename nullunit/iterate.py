@@ -37,6 +37,10 @@ def _makeDidNothing( results ):
   return False
 
 
+def _isPackageBuild( state ):
+  return state[ 'target' ] in ( 'dpkg', 'rpm', 'respkg', 'resource' )
+
+
 def readState( file ):
   try:
     state = json.loads( open( file, 'r' ).read() )
@@ -64,7 +68,7 @@ def doStep( state, mcp, config ):
     state[ 'state' ] = 'requires'
 
   elif start_state == 'requires':
-    if doRequires( state, mcp ):
+    if doRequires( state, mcp, config ):
       state[ 'state' ] = 'target'
 
     else:
@@ -107,15 +111,21 @@ def doCheckout( state ):
 
   for ( root, dirname_list, filename_list ) in os.walk( state[ 'dir' ] ):  # go through and `touch` everything.
     for filename in filename_list:                                         # clock skew is a fact of life, we are building everything anyway
-      os.utime( os.path.join( root, filename ) )                           # this helps make not complain about the future
+      os.utime( os.path.join( root, filename ), None )                     # this helps make not complain about the future
 
 
-def doRequires( state, mcp ):
+def doRequires( state, mcp, config ):
   logging.info( 'iterate: getting requires "%s"' % state[ 'requires' ] )
+  args = []
+
+  if not _isPackageBuild( state ):
+    args.append( 'RESOURCE_NAME="%s"' % config.get( 'mcp', 'resource_name' ) )
+    args.append( 'RESOURCE_INDEX=%s' % config.get( 'mcp', 'resource_index' ) )
+
   env = os.environ
   env[ 'DEBIAN_PRIORITY' ] = 'critical'
   env[ 'DEBIAN_FRONTEND' ] = 'noninteractive'
-  ( results, rc ) = execute_lines_rc( '%s -s %s' % ( MAKE_CMD, state[ 'requires' ] ), state[ 'dir' ], env=env )
+  ( results, rc ) = execute_lines_rc( '%s -s %s %s' % ( MAKE_CMD, state[ 'requires' ], ' '.join( args ) ), state[ 'dir' ], env=env )
 
   if rc != 0:
     if rc == 2 and _makeDidNothing( results ):
@@ -140,7 +150,8 @@ def doRequires( state, mcp ):
   return True
 
 def doTarget( state, mcp, config ):
-  if state[ 'target' ] in ( 'dpkg', 'rpm', 'rpkg', 'resource' ):
+  args = []
+  if _isPackageBuild( state ):
     packrat = getPackrat( config )
     if not packrat:
       raise Exception( 'iterate: Error Connecting to packrat' )
@@ -160,8 +171,12 @@ def doTarget( state, mcp, config ):
         mcp.setResults( ( 'Error with %s-setup\n' % state[ 'target' ] ) + '\n'.join( results ) )
         return False
 
+  else:
+    args.append( 'RESOURCE_NAME="%s"' % config.get( 'mcp', 'resource_name' ) )
+    args.append( 'RESOURCE_INDEX=%s' % config.get( 'mcp', 'resource_index' ) )
+
   logging.info( 'iterate: executing target "%s"' % state[ 'target' ] )
-  ( target_results, rc ) = execute_lines_rc( '%s %s' % ( MAKE_CMD, state[ 'target' ] ), state[ 'dir' ] )
+  ( target_results, rc ) = execute_lines_rc( '%s %s' % ( MAKE_CMD, state[ 'target' ], ' '.join( args ) ), state[ 'dir' ] )
 
   if rc != 0:
     if rc == 2 and _makeDidNothing( target_results ):
@@ -174,7 +189,7 @@ def doTarget( state, mcp, config ):
 
   mcp.setResults( '\n'.join( target_results ) )
 
-  if state[ 'target' ] in ( 'dpkg', 'rpm', 'rpkg', 'resource' ):
+  if _isPackageBuild( state ):
     logging.info( 'iterate: getting package file "%s"' % state[ 'requires' ] )
     mcp.sendStatus( 'Package Build' )
     ( results, rc ) = execute_lines_rc( '%s -s %s-file' % ( MAKE_CMD, state[ 'target' ] ), state[ 'dir' ] )
