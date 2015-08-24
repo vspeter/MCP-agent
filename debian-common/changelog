@@ -1,4 +1,4 @@
-nullunit (0.10-1) DIST; urgency=medium
+nullunit (0.10-2) DIST; urgency=medium
 
   * rpkg to respkg
   * pass to Makefile resource name index
