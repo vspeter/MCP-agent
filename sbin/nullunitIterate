@@ -71,7 +71,7 @@ if state is None:
 
 if state[ 'state' ] in ( 'done', 'failed' ):
   mcp.sendStatus( 'Ran' )
-  if config.get( 'make', 'target' ) in ( 'lint', 'test', 'dpkg', 'rpm', 'resource' ):
+  if config.get( 'make', 'target' ) in ( 'lint', 'test', 'dpkg', 'respkg', 'rpm', 'resource' ):
     logging.info( 'Signaling Job Ran')
     mcp.signalJobRan()
 
