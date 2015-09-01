@@ -1,3 +1,10 @@
+nullunit (0.11-1) DIST; urgency=medium
+
+  * nullunitMastersync tweekes
+  * bug fixes
+
+ -- Peter <peter@blueboy>  Wed, 10 Jun 2015 16:30:23 -0600
+
 nullunit (0.10-3) DIST; urgency=medium
 
   * rpkg to respkg
