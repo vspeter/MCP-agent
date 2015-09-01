@@ -101,11 +101,12 @@ def setupConfig( config, src, options ):
         ip_address.sub_interface = 0
         ip_address.save()
 
-  try:
-    config.profile = Profile.objects.get( pk=options.profile )
-  except Profile.DoesNotExist:
-    print 'profile "%s" not found' % options.profile
-    sys.exit( 1 )
+  if options.profile:
+    try:
+      config.profile = Profile.objects.get( pk=options.profile )
+    except Profile.DoesNotExist:
+      print 'profile "%s" not found' % options.profile
+      sys.exit( 1 )
 
   config.config_values = src[ 'config_values' ]
   config.setToProvisioned()
@@ -121,7 +122,7 @@ if options.resource is None:
   print 'resource name is required'
   sys.exit( 1 )
 
-if ( options.existing is not None ) and ( ( options.pod is None ) or ( options.profile is None ) ):
+if ( options.existing is None ) and ( ( options.pod is None ) or ( options.profile is None ) ):
   print 'pod and/or profile is required when not using existing configs'
   sys.exit( 1 )
 
@@ -152,10 +153,14 @@ if options.existing:
 
   if options.offset:
     if options.count:
-      config_list = config_list[ options.offset : options.offset + options.count ]
+      config_list = config_list[ options.offset:options.offset + options.count ]
 
     else:
-      config_list = config_list[ options.offset : ]
+      config_list = config_list[ options.offset: ]
+
+  if len( config_list ) < len( provisioning_list ):
+    print 'Not enough existing target nodes found, try a less specific hostname and/or smaller offset'
+    sys.exit( 1 )
 
   for config in config_list:
     src = provisioning_list.pop( 0 )

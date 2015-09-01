@@ -28,10 +28,10 @@ def _makeDidNothing( results ):
     return False
 
   # make sure something like "make: *** No rule to make target `XXXX', needed by `XXXX'.  Stop." still fails
-  if re.search( '^make: \*\*\* No rule to make .* Stop\.$', results[0] ):
+  if re.search( '^make(\[[0-9]+\])?: \*\*\* No rule to make .* Stop\.$', results[0] ):
     return True
 
-  if re.search( '^make: Nothing to be done for .*\.$', results[0] ):
+  if re.search( '^make(\[[0-9]+\])?: Nothing to be done for .*\.$', results[0] ):
     return True
 
   return False
@@ -110,8 +110,11 @@ def doCheckout( state ):
   execute( '%s checkout %s' % ( GIT_CMD, state[ 'branch' ] ), state[ 'dir' ] )
 
   for ( root, dirname_list, filename_list ) in os.walk( state[ 'dir' ] ):  # go through and `touch` everything.
-    for filename in filename_list:                                         # clock skew is a fact of life, we are building everything anyway
-      os.utime( os.path.join( root, filename ), None )                     # this helps make not complain about the future
+    for filename in filename_list:
+      try:                                                                   # clock skew is a fact of life, we are building everything anyway
+        os.utime( os.path.join( root, filename ), None )                     # this helps make not complain about the future
+      except OSError:
+        pass
 
 
 def doRequires( state, mcp, config ):
