@@ -47,7 +47,7 @@ endif
 
 lint:
 ifeq (trusty, $(DISTRO_NAME))
-	linter -i sbin/nullunitMasterSync -i sbin/nullunitInterface
+	linter
 endif
 
 dpkg-distros:

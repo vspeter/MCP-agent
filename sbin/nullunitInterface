@@ -16,8 +16,8 @@ oparser.add_option(       '--signal-ran', help='(job) Signal the job has been Ru
 
 # query options
 oparser.add_option( '-r', '--resource', help='(query) with resource name', dest='resource', default=None )
-oparser.add_option( '-i', '--index',    help='(query) query with resource index', dest='index', default=None, type='int' )
-oparser.add_option( '-c', '--count',    help='(query) count', dest='count', default=None, type='int' )
+oparser.add_option( '-i', '--index', help='(query) query with resource index', dest='index', default=None, type='int' )
+oparser.add_option( '-c', '--count', help='(query) count', dest='count', default=None, type='int' )
 
 # status options
 oparser.add_option(       '--are-configured', help='(status) exit 0 if configured exit 2 otherwise', dest='are_configured', default=False, action='store_true' )

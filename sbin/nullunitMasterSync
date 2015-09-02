@@ -21,16 +21,16 @@ oparser.add_option( '-v', '--verbose', dest='verbose', default=False, action='st
 
 # query options
 oparser.add_option( '-r', '--resource', help='(query) with resource name', dest='resource', default=None )
-oparser.add_option( '-i', '--index',    help='(query) query with resource index\n(if count is specified, this is the starting index, otherwise one will be returned)', dest='index', default=None, type='int' )
-oparser.add_option( '-c', '--count',    help='(query) count', dest='count', default=None, type='int' )
+oparser.add_option( '-i', '--index', help='(query) query with resource index\n(if count is specified, this is the starting index, otherwise one will be returned)', dest='index', default=None, type='int' )
+oparser.add_option( '-c', '--count', help='(query) count', dest='count', default=None, type='int' )
 
 oparser.add_option( '-e', '--existing', help='Overlay Configuration/Device data onto existing Configs/Devices,\notherwise new Configs/Devices will be created.\nNOTE: specify with what the hostname starts with.', dest='existing', metavar='HOSTNAME', default=None )
-oparser.add_option( '-p', '--pod',      help='(existing) Pod for searching(optional)\n(new) pod to create new configs in', dest='pod', default=None )
-oparser.add_option( '-o', '--offset',   help='Starting Existing offset', dest='offset', type='int' )
+oparser.add_option( '-p', '--pod', help='(existing) Pod for searching(optional)\n(new) pod to create new configs in', dest='pod', default=None )
+oparser.add_option( '-o', '--offset', help='Starting Existing offset', dest='offset', type='int' )
 
 oparser.add_option( '--auto-configure', help='set to Auto configure (default: False)', dest='auto_configure', default=False, action='store_true' )
-oparser.add_option( '--priority',       help='priority to set (default: 100)', dest='priority', default=100, type='int')
-oparser.add_option( '--profile',        help='config profile (new - required) (existing - optional)', dest='profile', default=None )
+oparser.add_option( '--priority', help='priority to set (default: 100)', dest='priority', default=100, type='int')
+oparser.add_option( '--profile', help='config profile (new - required) (existing - optional)', dest='profile', default=None )
 
 oparser.add_option( '--ipmi', help='*MCP - use ip from MCP, <subnet> - what subnet to assign from', dest='ipmi', default=None, metavar='SUBNET' )
 oparser.add_option( '--bond0', help='See --ipmi', dest='bond0', default=None, metavar='SUBNET' )
