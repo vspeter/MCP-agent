@@ -140,7 +140,7 @@ def doRequires( state, mcp, config ):
       return False
 
   for required in results:
-    if required.startswith( 'make:' ): # make was unhappy about something, skip that line.... if it was important it will come out later
+    if required.startswith( 'make:' ) or required.startswith( 'make[' ): # make was unhappy about something, skip that line.... if it was important it will come out later
       continue
 
     required = required.strip()
@@ -200,28 +200,32 @@ def doTarget( state, mcp, config ):
       mcp.setResults( ( 'Error getting %s-file\n' % state[ 'target' ] ) + '\n'.join( results ) )
       return False
 
-    for file_name in results:
+    filename_list = []
+    for line in results:
+      filename_list += line.split()
+
+    for filename in filename_list:
       try:
-        ( file_name, version ) = file_name.split( ':' )
+        ( filename, version ) = filename.split( ':' )
       except ValueError:
         version = None
 
-      if file_name[0] != '/': #it's not an aboslute path, prefix is with the working dir
-        file_name = os.path.realpath( os.path.join( state[ 'dir' ], file_name ) )
+      if filename[0] != '/': #it's not an aboslute path, prefix is with the working dir
+        filename = os.path.realpath( os.path.join( state[ 'dir' ], filename ) )
 
-      if packrat.checkFileName( os.path.basename( file_name ) ):
-        mcp.setResults( 'Filename "%s" is allready in use in packrat, skipping the file in upload.' % os.path.basename( file_name ) )
-        logging.warning( 'Filename ""%s" allready on packrat, skipping...' % os.path.basename( file_name ) )
-        target_results.append( '=== File "%s" skipped.' % os.path.basename( file_name ) )
+      if packrat.checkFileName( os.path.basename( filename ) ):
+        mcp.setResults( 'Filename "%s" is allready in use in packrat, skipping the file in upload.' % os.path.basename( filename ) )
+        logging.warning( 'Filename ""%s" allready on packrat, skipping...' % os.path.basename( filename ) )
+        target_results.append( '=== File "%s" skipped.' % os.path.basename( filename ) )
         continue
 
-      logging.info( 'iterate: uploading "%s"' % file_name )
-      src = open( file_name, 'r' )
+      logging.info( 'iterate: uploading "%s"' % filename )
+      src = open( filename, 'r' )
       try:
-        result = packrat.addPackageFile( src, 'Package File "%s"' % os.path.basename( file_name ), 'MCP Auto Build from %s.  Build on %s at %s' % ( state[ 'url' ], socket.getfqdn(), datetime.utcnow() ), version )
+        result = packrat.addPackageFile( src, 'Package File "%s"' % os.path.basename( filename ), 'MCP Auto Build from %s.  Build on %s at %s' % ( state[ 'url' ], socket.getfqdn(), datetime.utcnow() ), version )
 
       except Exception as e:
-        logging.exception( 'iterate: Exception "%s" while adding package file "%s"' % ( e, file_name ) )
+        logging.exception( 'iterate: Exception "%s" while adding package file "%s"' % ( e, filename ) )
         mcp.setResults( 'Exception adding package file' )
         src.close()
         return False
@@ -231,14 +235,14 @@ def doTarget( state, mcp, config ):
       if isinstance( result, list ):
         raise Exception( 'Packrat was unable to detect distro, options are "%s"' % result )
 
-      target_results.append( '=== File "%s" uploaded.' % os.path.basename( file_name ) )
+      target_results.append( '=== File "%s" uploaded.' % os.path.basename( filename ) )
 
       if not result:
         mcp.sendStatus( 'Packge(s) NOT (all) Uploaded' )
         return False
 
-      if not packrat.checkFileName( os.path.basename( file_name ) ):
-        raise Exception( 'Recently added file "%s" not showing in packrat.' % os.path.basename( file_name ) )
+      if not packrat.checkFileName( os.path.basename( filename ) ):
+        raise Exception( 'Recently added file "%s" not showing in packrat.' % os.path.basename( filename ) )
 
     packrat.logout()
 
