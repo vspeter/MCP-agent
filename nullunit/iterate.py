@@ -226,7 +226,7 @@ def doTarget( state, mcp, config ):
 
       except Exception as e:
         logging.exception( 'iterate: Exception "%s" while adding package file "%s"' % ( e, filename ) )
-        mcp.setResults( 'Exception adding package file' )
+        mcp.setResults( 'Exception adding package file "%s"' % filename )
         src.close()
         return False
 

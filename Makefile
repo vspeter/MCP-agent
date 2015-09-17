@@ -82,6 +82,6 @@ rpm:
 	touch rpm
 
 rpm-file:
-	echo $(shell ls rpmbuild/RPMS/noarch/nullunit-*.rpm)
+	echo $(shell ls rpmbuild/RPMS/*/nullunit-*.rpm)
 
 .PHONY: all clean full-clean test-distros test-requires test lint-requires lint dpkg-distros dpkg-requires dpkg-file rpm-distros rpm-requires rpm-file
