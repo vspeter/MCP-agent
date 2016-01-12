@@ -15,10 +15,12 @@ MAKE_CMD = '/usr/bin/make'
 WORK_DIR = '/nullunit'
 
 if os.path.exists( '/usr/bin/apt-get' ):
-  PKG_INSTAL = '/usr/bin/apt-get install -y %s'
+  PKG_UPDATE = '/usr/bin/apt-get update'
+  PKG_INSTALL = '/usr/bin/apt-get install -y %s'
 
 elif os.path.exists( '/usr/bin/yum' ):
-  PKG_INSTAL = '/usr/bin/yum install -y %s'
+  PKG_UPDATE = '/usr/bin/yum clean all'
+  PKG_INSTALL = '/usr/bin/yum install -y %s'
 
 else:
   raise Exception( 'can\'t detect package manager' )
@@ -147,8 +149,11 @@ def doRequires( state, mcp, config ):
     if not required:
       continue
 
+    logging.ingo( 'iterate: updating pkg metadata' )
+    execute( PKG_UPDATE )
+
     logging.info( 'iterate: installing "%s"' % required )
-    execute( PKG_INSTAL % required )
+    execute( PKG_INSTALL % required )
 
   return True
 
