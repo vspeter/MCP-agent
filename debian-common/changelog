@@ -1,3 +1,9 @@
+nullunit (0.14-1) DIST; urgency=medium
+
+  * to a repo update before installing requirements
+
+ -- Peter <peter@blueboy>  Tue, 12 Jan 2016 16:41:39 -0700
+
 nullunit (0.13-1) DIST; urgency=medium
 
   * Preallocation support
