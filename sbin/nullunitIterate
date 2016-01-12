@@ -44,12 +44,23 @@ tmp.close()
 
 config = getConfig()
 if not config:
+  logging.error( 'Unable to load Config' )
   os.unlink( PID_FILE )
+  logging.shutdown()
   sys.exit( 1 )
+
+if config.get( 'mcp', 'prealloc' ):
+  logging.warning( 'Preallocated, waiting for insturctions' )
+  os.system( 'configManager -c nullunit' )
+  os.unlink( PID_FILE )
+  logging.shutdown()
+  sys.exit( 0 )
 
 mcp = getMCP( config )
 if not mcp:
+  logging.error( 'Unable to connect to MCP' )
   os.unlink( PID_FILE )
+  logging.shutdown()
   sys.exit( 1 )
 
 try:

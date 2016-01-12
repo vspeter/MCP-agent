@@ -5,6 +5,7 @@
 [mcp]
 host: {{ mcp_host }}
 proxy: {{ mcp_proxy }}
+prealloc: {{ mcp_prealloc }}
 job_id: {{ mcp_job_id }}
 resource_name: {{ mcp_resource_name }}
 resource_index: {{ mcp_resource_index }}

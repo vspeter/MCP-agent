@@ -1,3 +1,9 @@
+nullunit (0.13-1) DIST; urgency=medium
+
+  * Preallocation support
+
+ -- Peter <peter@blueboy>  Tue, 12 Jan 2016 08:26:23 -0700
+
 nullunit (0.12-1) DIST; urgency=medium
 
   * handeling multiple package files per line
