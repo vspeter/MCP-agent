@@ -149,7 +149,7 @@ def doRequires( state, mcp, config ):
     if not required:
       continue
 
-    logging.ingo( 'iterate: updating pkg metadata' )
+    logging.info( 'iterate: updating pkg metadata' )
     execute( PKG_UPDATE )
 
     logging.info( 'iterate: installing "%s"' % required )
