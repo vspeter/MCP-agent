@@ -25,8 +25,8 @@ full-clean: clean
 	$(RM) -f dpkg-setup
 	$(RM) -f rpm-setup
 
-#test-distros:
-#	echo precise trusty centos6
+test-distros:
+	echo precise trusty centos6
 
 test-requires:
 ifeq (centos, $(DISTRO))
