@@ -123,8 +123,7 @@ while cont:
   if options.step:
     break
 
-  logging.info( 'state "%s" complete, pausing...' % state[ 'state' ] )
-  time.sleep( 10 )
+  time.sleep( 2 )
 
 logging.info( 'Done' )
 os.unlink( PID_FILE )

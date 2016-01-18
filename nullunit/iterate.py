@@ -40,25 +40,27 @@ def _makeDidNothing( results ):
 
 
 def _makeAndGetValues( mcp, state, target, args, env ):
-  results = []
-  ( item_list, rc ) = execute_lines_rc( '%s -s %s-requires %s' % ( MAKE_CMD, target, ' '.join( args ) ), state[ 'dir' ], env=env )
+  ( item_list, rc ) = execute_lines_rc( '%s -s %s %s' % ( MAKE_CMD, target, ' '.join( args ) ), state[ 'dir' ], env=env )
 
   if rc != 0:
     if rc == 2 and _makeDidNothing( item_list ):
-      return True
+      return []
 
     else:
       logging.info( 'iterate: error getting requires' )
       mcp.setResults( 'Error getting requires:\n' + '\n'.join( item_list ) )
-      return False
+      return None
 
+  results = []
   for item in item_list:
     if item.startswith( 'make:' ) or item.startswith( 'make[' ): # make was unhappy about something, skip that line.... if it was important it will come out later
       continue
 
     item = item.strip()
     if item:
-      results.allend( item  )
+      results.append( item  )
+
+  return results
 
 
 def _isPackageBuild( state ):
@@ -142,7 +144,7 @@ def doCheckout( state ):
 
 
 def doRequires( state, mcp, config ):
-  logging.info( 'iterate: getting requires "%s"' % state[ 'requires' ] )
+  logging.info( 'iterate: getting requires for "%s"' % state[ 'target' ] )
   args = []
 
   env = os.environ
@@ -154,6 +156,8 @@ def doRequires( state, mcp, config ):
     args.append( 'RESOURCE_NAME="%s"' % config.get( 'mcp', 'resource_name' ) )
     args.append( 'RESOURCE_INDEX=%s' % config.get( 'mcp', 'resource_index' ) )
     config_list = _makeAndGetValues( mcp, state, '%s-config' % state[ 'target' ], args, env )
+    if config_list is None:
+      return False
     for config in config_list:
       ( key, value ) = config.split( ':', 1 )
       values[ key ] = value
@@ -161,6 +165,8 @@ def doRequires( state, mcp, config ):
         raise Exception( 'iterate: Error Setting Configuration Vaules' )
 
   required_list = _makeAndGetValues( mcp, state, '%s-requires' % state[ 'target' ], args, env )
+  if required_list is None:
+    return False
 
   logging.info( 'iterate: updating pkg metadata' )
   execute( PKG_UPDATE )
