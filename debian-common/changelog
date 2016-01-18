@@ -1,3 +1,11 @@
+nullunit (0.15-1) DIST; urgency=medium
+
+  * support for network resources
+  * support for pushing config values
+  * nullunit now runs all at once
+
+ -- Peter <peter@blueboy>  Mon, 18 Jan 2016 10:31:41 -0700
+
 nullunit (0.14-2) DIST; urgency=medium
 
   * to a repo update before installing requirements
