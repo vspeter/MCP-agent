@@ -5,14 +5,21 @@ import os
 from optparse import OptionParser
 import logging
 import ConfigParser
+import signal
+import time
 from logging.handlers import SysLogHandler
 
 from nullunit.common import getConfig, getMCP
 from nullunit.iterate import readState, writeState, doStep
-from nullunit.procutils import open_output
+from nullunit.procutils import open_output, close_output
 
 PID_FILE = '/var/run/nullunitIterate.pid'
 STATE_FILE = '/var/lib/mcp/nullunitIterate.state'
+
+def _sigHandler( sig, frame ):
+  global cont
+  logging.debug( 'Got Signal %d, stopping...' % sig )
+  cont = False
 
 oparser = OptionParser( description='nullunit iterator' )
 
@@ -42,6 +49,10 @@ if os.path.exists( PID_FILE ):
 tmp = open( PID_FILE, 'w' )
 tmp.write( '%s\n' % os.getpid() )
 tmp.close()
+
+cont = True
+signal.signal( signal.SIGINT, _sigHandler )
+signal.signal( signal.SIGTERM, _sigHandler )
 
 config = getConfig()
 if not config:
@@ -80,29 +91,41 @@ if state is None:
             'target': config.get( 'make', 'target' ),
          }
 
-if state[ 'state' ] in ( 'done', 'failed' ):
-  mcp.sendStatus( 'Ran' )
-  if config.get( 'make', 'target' ) in ( 'lint', 'test', 'dpkg', 'respkg', 'rpm', 'resource' ):
-    logging.info( 'Signaling Job Ran')
-    mcp.signalJobRan()
+# loop start
 
-  logging.info( 'Task Complete' )
-  os.unlink( PID_FILE )
-  logging.shutdown()
-  sys.exit( 0 )
+counter = 0
+while cont:
+  if state[ 'state' ] in ( 'done', 'failed' ):
+    mcp.sendStatus( 'Ran' )
+    if config.get( 'make', 'target' ) in ( 'lint', 'test', 'dpkg', 'respkg', 'rpm', 'resource' ):
+      logging.info( 'Signaling Job Ran' )
+      mcp.signalJobRan()
 
-open_output( '/tmp/nullunitIterate_debug.%s.log' % os.getpid() )
+    logging.info( 'Task Complete' )
+    break
 
-try:
-  doStep( state, mcp, config )
-except Exception as e:
-  logging.exception( 'Exception in doStep for "%s".' % state[ 'state' ] )
-  mcp.sendStatus( 'Exception: (%s) "%s"' % ( e.__class__.__name__, e ) )
-  logging.shutdown()
-  sys.exit( 1 )
+  counter += 1
+  open_output( '/tmp/nullunitIterate_debug.%s.%s.log' % ( os.getpid(), counter ) )
 
-logging.info( 'Writing State' )
-writeState( STATE_FILE, state )
+  try:
+    doStep( state, mcp, config )
+  except Exception as e:
+    logging.exception( 'Exception in doStep for "%s".' % state[ 'state' ] )
+    mcp.sendStatus( 'Exception: (%s) "%s"' % ( e.__class__.__name__, e ) )
+    logging.shutdown()
+    sys.exit( 1 )
+
+  close_output()
+
+  logging.info( 'Writing State' )
+  writeState( STATE_FILE, state )
+
+  if options.step:
+    break
+
+  logging.info( 'state "%s" complete, pausing...' % state[ 'state' ] )
+  time.sleep( 10 )
+
 logging.info( 'Done' )
 os.unlink( PID_FILE )
 logging.shutdown()
