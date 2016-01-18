@@ -39,6 +39,28 @@ def _makeDidNothing( results ):
   return False
 
 
+def _makeAndGetValues( mcp, state, target, args, env ):
+  results = []
+  ( item_list, rc ) = execute_lines_rc( '%s -s %s-requires %s' % ( MAKE_CMD, target, ' '.join( args ) ), state[ 'dir' ], env=env )
+
+  if rc != 0:
+    if rc == 2 and _makeDidNothing( item_list ):
+      return True
+
+    else:
+      logging.info( 'iterate: error getting requires' )
+      mcp.setResults( 'Error getting requires:\n' + '\n'.join( item_list ) )
+      return False
+
+  for item in item_list:
+    if item.startswith( 'make:' ) or item.startswith( 'make[' ): # make was unhappy about something, skip that line.... if it was important it will come out later
+      continue
+
+    item = item.strip()
+    if item:
+      results.allend( item  )
+
+
 def _isPackageBuild( state ):
   return state[ 'target' ] in ( 'dpkg', 'rpm', 'respkg', 'resource' )
 
@@ -123,35 +145,27 @@ def doRequires( state, mcp, config ):
   logging.info( 'iterate: getting requires "%s"' % state[ 'requires' ] )
   args = []
 
-  if not _isPackageBuild( state ):
-    args.append( 'RESOURCE_NAME="%s"' % config.get( 'mcp', 'resource_name' ) )
-    args.append( 'RESOURCE_INDEX=%s' % config.get( 'mcp', 'resource_index' ) )
-
   env = os.environ
   env[ 'DEBIAN_PRIORITY' ] = 'critical'
   env[ 'DEBIAN_FRONTEND' ] = 'noninteractive'
-  ( results, rc ) = execute_lines_rc( '%s -s %s %s' % ( MAKE_CMD, state[ 'requires' ], ' '.join( args ) ), state[ 'dir' ], env=env )
 
-  if rc != 0:
-    if rc == 2 and _makeDidNothing( results ):
-      return True
+  if not _isPackageBuild( state ):
+    values = {}
+    args.append( 'RESOURCE_NAME="%s"' % config.get( 'mcp', 'resource_name' ) )
+    args.append( 'RESOURCE_INDEX=%s' % config.get( 'mcp', 'resource_index' ) )
+    config_list = _makeAndGetValues( mcp, state, '%s-config' % state[ 'target' ], args, env )
+    for config in config_list:
+      ( key, value ) = config.split( ':', 1 )
+      values[ key ] = value
+      if not mcp.setConfigValues( values, config.get( 'mcp', 'resource_name' ), config.get( 'mcp', 'resource_index' ), 1 ):
+        raise Exception( 'iterate: Error Setting Configuration Vaules' )
 
-    else:
-      logging.info( 'iterate: error getting requires' )
-      mcp.setResults( 'Error getting requires:\n' + '\n'.join( results ) )
-      return False
+  required_list = _makeAndGetValues( mcp, state, '%s-requires' % state[ 'target' ], args, env )
 
-  for required in results:
-    if required.startswith( 'make:' ) or required.startswith( 'make[' ): # make was unhappy about something, skip that line.... if it was important it will come out later
-      continue
+  logging.info( 'iterate: updating pkg metadata' )
+  execute( PKG_UPDATE )
 
-    required = required.strip()
-    if not required:
-      continue
-
-    logging.info( 'iterate: updating pkg metadata' )
-    execute( PKG_UPDATE )
-
+  for required in required_list:
     logging.info( 'iterate: installing "%s"' % required )
     execute( PKG_INSTALL % required )
 
@@ -198,7 +212,7 @@ def doTarget( state, mcp, config ):
   mcp.setResults( '\n'.join( target_results ) )
 
   if _isPackageBuild( state ):
-    logging.info( 'iterate: getting package file "%s"' % state[ 'requires' ] )
+    logging.info( 'iterate: getting package file "%s"' % state[ 'target' ] )
     mcp.sendStatus( 'Package Build' )
     ( results, rc ) = execute_lines_rc( '%s -s %s-file' % ( MAKE_CMD, state[ 'target' ] ), state[ 'dir' ] )
     if rc != 0 or len( results ) == 0:

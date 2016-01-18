@@ -15,7 +15,6 @@ url: {{ mcp_git_url }}
 branch: {{ mcp_git_branch }}
 
 [make]
-requires: {{ mcp_make_requires }}
 target: {{ mcp_make_target }}
 
 [packrat]

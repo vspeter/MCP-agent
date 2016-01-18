@@ -46,3 +46,21 @@ class MCP( object ):
       args[ 'count' ] = count
 
     return self.cinp.call( '/api/v1/Processor/BuildJob:%s:(getProvisioningInfo)' % self.job_id, args )[ 'value' ]
+
+  def setConfigValues( self, values, resource, index=None, count=None ):
+    logging.info( 'MCP: Setting Config Values "%s" index: "%s", count: "%s"' % ( resource, index, count ) )
+    args = { 'name': resource }
+    if index is not None:
+      args[ 'index' ] = index
+
+    if count is not None:
+      args[ 'count' ] = count
+
+    args[ 'values' ] = values
+
+    return self.cinp.call( '/api/v1/Processor/BuildJob:%s:(setConfigValues)' % self.job_id, args )[ 'value' ]
+
+  def getNetworkInfo( self, network ):
+    logging.info( 'MCP: Network Info for "%s"' % network )
+    args = { 'name': network }
+    return self.cinp.call( '/api/v1/Processor/BuildJob:%s:(getNetworkInfo)' % self.job_id, args )[ 'value' ]

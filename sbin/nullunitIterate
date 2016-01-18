@@ -17,6 +17,7 @@ STATE_FILE = '/var/lib/mcp/nullunitIterate.state'
 oparser = OptionParser( description='nullunit iterator' )
 
 oparser.add_option( '-v', '--verbose', dest='verbose', default=False, action='store_true' )
+oparser.add_option( '-s', '--step', dest='step', default=False, action='store_true' )
 
 ( options, args ) = oparser.parse_args()
 
@@ -77,7 +78,6 @@ if state is None:
             'url': config.get( 'git', 'url' ),
             'branch': config.get( 'git', 'branch' ),
             'target': config.get( 'make', 'target' ),
-            'requires': config.get( 'make', 'requires' )
          }
 
 if state[ 'state' ] in ( 'done', 'failed' ):
