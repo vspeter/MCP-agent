@@ -1,7 +1,8 @@
-nullunit (0.15-3) DIST; urgency=medium
+nullunit (0.15-4) DIST; urgency=medium
 
   * support for network resources
   * support for pushing config values
+  * support for reading config values
   * nullunit now runs all at once
 
  -- Peter <peter@blueboy>  Mon, 18 Jan 2016 10:31:41 -0700

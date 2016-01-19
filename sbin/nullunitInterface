@@ -27,6 +27,7 @@ oparser.add_option(       '--are-configured', help='(status) exit 0 if configure
 #oparser.add_option(       '--device', help='(data) get plato device config', dest='device', default=False, action='store_true' )
 oparser.add_option(       '--primary-ip', help='(data) print the primary ip', dest='primary_ip', default=False, action='store_true' )
 oparser.add_option(       '--set-keyval', help='(data) set the config key to value, can be specified multiple times (ie: --set-keyval=mykey:myvalue)', dest='set_keyval', type='string', action='append' )
+oparser.add_option(       '--get-keyval', help='(data) get value for config key', dest='get_keyval', type='string' )
 
 # output option
 #oparser.add_option( '-f', '--file', help='write output to file, otherwise will be sent to stdout (for data options).', dest='file' )
@@ -71,15 +72,22 @@ if options.are_configured:
 
   sys.exit( 2 )
 
-if options.primary_ip:
+if options.primary_ip or options.get_keyval:
   if options.resource is None:
     print 'Resource Name is required'
     sys.exit( 1 )
 
   config_list = mcp.getProvisioningInfo( options.resource, options.index, options.count ).values()
 
-  for config in config_list:
-    print config[ 'address_provisioning' ][ 'address' ]
+  if options.primary_ip:
+    for config in config_list:
+      print config[ 'address_provisioning' ][ 'address' ]
+
+  else:
+    try:
+      print config[ options.get_keyval ]
+    except KeyError:
+      print '<not found>'
 
   sys.exit( 0 )
 
