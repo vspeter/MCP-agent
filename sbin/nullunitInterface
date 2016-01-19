@@ -77,17 +77,24 @@ if options.primary_ip or options.get_keyval:
     print 'Resource Name is required'
     sys.exit( 1 )
 
-  config_list = mcp.getProvisioningInfo( options.resource, options.index, options.count ).values()
+  config_map = mcp.getProvisioningInfo( options.resource, options.index, options.count )
+  # we need to sort the results, they come down in a map
+  config_list = []
+  key_list = config_map.keys()
+  key_list.sort( key=lambda x: int( x ) )
+  for key in key_list:
+    config_list.append( config_map[ key ] )
 
   if options.primary_ip:
     for config in config_list:
       print config[ 'address_provisioning' ][ 'address' ]
 
   else:
-    try:
-      print config[ options.get_keyval ]
-    except KeyError:
-      print '<not found>'
+    for config in config_list:
+      try:
+        print config[ options.get_keyval ]
+      except KeyError:
+        print '<not found>'
 
   sys.exit( 0 )
 
