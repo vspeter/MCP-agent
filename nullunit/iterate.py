@@ -155,11 +155,11 @@ def doRequires( state, mcp, config ):
     values = {}
     args.append( 'RESOURCE_NAME="%s"' % config.get( 'mcp', 'resource_name' ) )
     args.append( 'RESOURCE_INDEX=%s' % config.get( 'mcp', 'resource_index' ) )
-    config_list = _makeAndGetValues( mcp, state, '%s-config' % state[ 'target' ], args, env )
-    if config_list is None:
+    item_list = _makeAndGetValues( mcp, state, '%s-config' % state[ 'target' ], args, env )
+    if item_list is None:
       return False
-    for config in config_list:
-      ( key, value ) = config.split( ':', 1 )
+    for item in item_list:
+      ( key, value ) = item.split( ':', 1 )
       values[ key ] = value
       if not mcp.setConfigValues( values, config.get( 'mcp', 'resource_name' ), config.get( 'mcp', 'resource_index' ), 1 ):
         raise Exception( 'iterate: Error Setting Configuration Vaules' )

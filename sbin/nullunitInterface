@@ -26,7 +26,7 @@ oparser.add_option(       '--are-configured', help='(status) exit 0 if configure
 #oparser.add_option(       '--config', help='(data) get plato config config', dest='config', default=False, action='store_true' )
 #oparser.add_option(       '--device', help='(data) get plato device config', dest='device', default=False, action='store_true' )
 oparser.add_option(       '--primary-ip', help='(data) print the primary ip', dest='primary_ip', default=False, action='store_true' )
-oparser.add_option(       '--set-keyval', help='(data) set the config key to value, can be specified multiple times (ie: --set-keyval=mykey:myvalue)', dest='set_keyval', type='String', action='append' )
+oparser.add_option(       '--set-keyval', help='(data) set the config key to value, can be specified multiple times (ie: --set-keyval=mykey:myvalue)', dest='set_keyval', type='string', action='append' )
 
 # output option
 #oparser.add_option( '-f', '--file', help='write output to file, otherwise will be sent to stdout (for data options).', dest='file' )
@@ -54,6 +54,10 @@ if options.signal_ran:
 
 # status options
 if options.are_configured:
+  if options.resource is None:
+    print 'Resource Name is required'
+    sys.exit( 1 )
+
   status_list = mcp.getConfigStatus( options.resource, options.index, options.count )
   result = True
   for item in status_list:
@@ -68,12 +72,22 @@ if options.are_configured:
   sys.exit( 2 )
 
 if options.primary_ip:
-  configuration_list = mcp.getProvisioningInfo( options.resource, options.index, options.count )
+  if options.resource is None:
+    print 'Resource Name is required'
+    sys.exit( 1 )
 
-  print configuration_list
+  config_list = mcp.getProvisioningInfo( options.resource, options.index, options.count ).values()
+
+  for config in config_list:
+    print config[ 'address_provisioning' ][ 'address' ]
+
   sys.exit( 0 )
 
 if options.set_keyval:
+  if options.resource is None:
+    print 'Resource Name is required'
+    sys.exit( 1 )
+
   values = {}
   for item in options.set_keyval:
     try:
