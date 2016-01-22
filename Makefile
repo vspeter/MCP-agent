@@ -51,7 +51,7 @@ ifeq (trusty, $(DISTRO_NAME))
 endif
 
 dpkg-distros:
-	echo precise trusty
+	echo precise trusty xenial
 
 dpkg-requires:
 	echo dpkg-dev debhelper cdbs
