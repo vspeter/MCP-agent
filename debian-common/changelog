@@ -1,3 +1,10 @@
+nullunit (0.16-1) DIST; urgency=medium
+
+  * reboot after getting config to make sure
+    system is cleanly loaded as it's new id
+
+ -- Peter <peter@blueboy>  Mon, 25 Jan 2016 15:05:16 -0700
+
 nullunit (0.15-6) DIST; urgency=medium
 
   * support for network resources
