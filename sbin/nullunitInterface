@@ -113,7 +113,7 @@ if options.set_keyval:
 
     values[ key ] = value
     if values[ key ][0] in ( '[', '{' ):
-      values[ key ] = jason.loads( values[ key ] )
+      values[ key ] = json.loads( values[ key ] )
 
   if not mcp.setConfigValues( values, options.resource, options.index, options.count ):
     print 'Error setting config Values "%s"' % values
