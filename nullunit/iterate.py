@@ -161,6 +161,9 @@ def doRequires( state, mcp, config ):
     for item in item_list:
       ( key, value ) = item.split( ':', 1 )
       values[ key ] = value
+      if value[0] in ( '[', '{' ):
+        value = json.loads( value )
+
       if not mcp.setConfigValues( values, config.get( 'mcp', 'resource_name' ), config.get( 'mcp', 'resource_index' ), 1 ):
         raise Exception( 'iterate: Error Setting Configuration Vaules' )
 
