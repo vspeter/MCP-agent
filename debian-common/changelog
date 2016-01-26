@@ -1,4 +1,4 @@
-nullunit (0.16-1) DIST; urgency=medium
+nullunit (0.16-2) DIST; urgency=medium
 
   * reboot after getting config to make sure
     system is cleanly loaded as it's new id

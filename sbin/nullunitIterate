@@ -66,6 +66,7 @@ if config.get( 'mcp', 'prealloc' ): # this needs to be re-thought, when plato us
   os.system( 'configManager -c nullunit' )
   config = getConfig()
   if not config.get( 'mcp', 'prealloc' ):
+    os.system( 'configManager -c -a' )
     os.system( 'reboot' )
 
   os.unlink( PID_FILE )

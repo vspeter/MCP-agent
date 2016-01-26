@@ -158,12 +158,15 @@ def doRequires( state, mcp, config ):
     item_list = _makeAndGetValues( mcp, state, '%s-config' % state[ 'target' ], args, env )
     if item_list is None:
       return False
+
     for item in item_list:
       ( key, value ) = item.split( ':', 1 )
-      values[ key ] = value
       if value[0] in ( '[', '{' ):
         value = json.loads( value )
 
+      values[ key ] = value
+
+    if values:
       if not mcp.setConfigValues( values, config.get( 'mcp', 'resource_name' ), config.get( 'mcp', 'resource_index' ), 1 ):
         raise Exception( 'iterate: Error Setting Configuration Vaules' )
 

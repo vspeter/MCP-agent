@@ -3,7 +3,7 @@ import logging
 from cinp import client
 
 class MCP( object ):
-  def __init__( self, host, proxy, job_id, name, index  ):
+  def __init__( self, host, proxy, job_id, name, index ):
     self.cinp = client.CInP( host, '/api/v1', proxy )
     self.job_id = job_id
     self.name = name
