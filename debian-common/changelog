@@ -1,3 +1,10 @@
+nullunit (0.17-1) DIST; urgency=medium
+
+  * run <target>-setup for all targets, 
+    not just package ones
+
+ -- Peter <peter@blueboy>  Tue, 02 Feb 2016 15:17:33 -0700
+
 nullunit (0.16-2) DIST; urgency=medium
 
   * reboot after getting config to make sure
