@@ -183,6 +183,7 @@ def doRequires( state, mcp, config ):
 
   return True
 
+
 def doTarget( state, mcp, config ):
   args = []
   if _isPackageBuild( state ):
@@ -190,7 +191,7 @@ def doTarget( state, mcp, config ):
     if not packrat:
       raise Exception( 'iterate: Error Connecting to packrat' )
 
-    logging.info( 'iterate: executing target clean' )
+    logging.info( 'iterate: executing clean' )
     ( results, rc ) = execute_lines_rc( '%s clean' % MAKE_CMD, state[ 'dir' ] )
 
     if rc != 0:
@@ -198,16 +199,18 @@ def doTarget( state, mcp, config ):
         mcp.setResults( 'Error with clean\n' + '\n'.join( results ) )
         return False
 
-    ( results, rc ) = execute_lines_rc( '%s %s-setup' % ( MAKE_CMD, state[ 'target' ] ), state[ 'dir' ] )
-
-    if rc != 0:
-      if rc == 2 and not _makeDidNothing( results ):
-        mcp.setResults( ( 'Error with %s-setup\n' % state[ 'target' ] ) + '\n'.join( results ) )
-        return False
-
   else:
     args.append( 'RESOURCE_NAME="%s"' % config.get( 'mcp', 'resource_name' ) )
     args.append( 'RESOURCE_INDEX=%s' % config.get( 'mcp', 'resource_index' ) )
+
+  logging.info( 'iterate: executing setup "%s"' % state[ 'target' ] )
+
+  ( results, rc ) = execute_lines_rc( '%s %s-setup' % ( MAKE_CMD, state[ 'target' ] ), state[ 'dir' ] )
+
+  if rc != 0:
+    if rc == 2 and not _makeDidNothing( results ):
+      mcp.setResults( ( 'Error with %s-setup\n' % state[ 'target' ] ) + '\n'.join( results ) )
+      return False
 
   logging.info( 'iterate: executing target "%s"' % state[ 'target' ] )
   ( target_results, rc ) = execute_lines_rc( '%s %s %s' % ( MAKE_CMD, state[ 'target' ], ' '.join( args ) ), state[ 'dir' ] )
