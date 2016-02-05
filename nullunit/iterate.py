@@ -193,7 +193,6 @@ def doTarget( state, mcp, config ):
 
     logging.info( 'iterate: executing clean' )
     ( results, rc ) = execute_lines_rc( '%s clean' % MAKE_CMD, state[ 'dir' ] )
-
     if rc != 0:
       if rc == 2 and not _makeDidNothing( results ):
         mcp.setResults( 'Error with clean\n' + '\n'.join( results ) )
@@ -204,9 +203,7 @@ def doTarget( state, mcp, config ):
     args.append( 'RESOURCE_INDEX=%s' % config.get( 'mcp', 'resource_index' ) )
 
   logging.info( 'iterate: executing setup "%s"' % state[ 'target' ] )
-
-  ( results, rc ) = execute_lines_rc( '%s %s-setup' % ( MAKE_CMD, state[ 'target' ] ), state[ 'dir' ] )
-
+  ( results, rc ) = execute_lines_rc( '%s %s-setup %s' % ( MAKE_CMD, state[ 'target' ], ' '.join( args ) ), state[ 'dir' ] )
   if rc != 0:
     if rc == 2 and not _makeDidNothing( results ):
       mcp.setResults( ( 'Error with %s-setup\n' % state[ 'target' ] ) + '\n'.join( results ) )
@@ -214,7 +211,6 @@ def doTarget( state, mcp, config ):
 
   logging.info( 'iterate: executing target "%s"' % state[ 'target' ] )
   ( target_results, rc ) = execute_lines_rc( '%s %s %s' % ( MAKE_CMD, state[ 'target' ], ' '.join( args ) ), state[ 'dir' ] )
-
   if rc != 0:
     if rc == 2 and _makeDidNothing( target_results ):
       mcp.setResults( 'Nothing Built' )
@@ -229,7 +225,7 @@ def doTarget( state, mcp, config ):
   if _isPackageBuild( state ):
     logging.info( 'iterate: getting package file "%s"' % state[ 'target' ] )
     mcp.sendStatus( 'Package Build' )
-    ( results, rc ) = execute_lines_rc( '%s -s %s-file' % ( MAKE_CMD, state[ 'target' ] ), state[ 'dir' ] )
+    ( results, rc ) = execute_lines_rc( '%s -s %s-file %s' % ( MAKE_CMD, state[ 'target' ], ' '.join( args ) ), state[ 'dir' ] )
     if rc != 0 or len( results ) == 0:
       mcp.setResults( ( 'Error getting %s-file\n' % state[ 'target' ] ) + '\n'.join( results ) )
       return False
