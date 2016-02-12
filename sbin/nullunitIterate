@@ -63,10 +63,10 @@ if not config:
 
 if config.get( 'mcp', 'prealloc' ): # this needs to be re-thought, when plato uses CINP we can ask directly for this nodes satus
   logging.warning( 'Preallocated, waiting for insturctions' )
-  os.system( 'configManager -c nullunit' )
+  os.system( 'configManager -c nullunit -g' )
   config = getConfig()
   if not config.get( 'mcp', 'prealloc' ):
-    os.system( 'configManager -c -a' )
+    os.system( 'configManager -c -a -g' )
     os.system( 'reboot' )
 
   os.unlink( PID_FILE )
