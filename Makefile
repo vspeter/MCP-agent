@@ -55,6 +55,9 @@ dpkg-distros:
 
 dpkg-requires:
 	echo dpkg-dev debhelper cdbs
+ifneq (xenial, $(DISTRO_NAME))
+	echo python-support
+endif
 
 dpkg-setup:
 	./debian-setup

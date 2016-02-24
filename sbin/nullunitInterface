@@ -38,7 +38,7 @@ oparser.add_option_group( ogroup )
 
 # data Input options
 ogroup = OptionGroup( oparser, 'Data Setting Options', 'Data Setting Options' )
-ogroup.add_option(       '--set-keyval', help='(data) set the config key to value, can be specified multiple times (ie: --set-keyval=mykey:myvalue), if value starts with { or [ it will be treated as JSON. Tip: you may have to wrap in \'\' ie: \'--set-keyval=myval=[ "stuff", "here" ]\'', dest='set_keyval', type='string', action='append' )
+ogroup.add_option(       '--set-keyval', help='set the config key to value, can be specified multiple times (ie: --set-keyval=mykey:myvalue), if value starts with { or [ it will be treated as JSON. Tip: you may have to wrap in \'\' ie: \'--set-keyval=myval=[ "stuff", "here" ]\'', dest='set_keyval', type='string', action='append' )
 oparser.add_option_group( ogroup )
 
 # output option
