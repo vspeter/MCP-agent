@@ -12,13 +12,15 @@ from procutils import execute, execute_lines_rc
 
 GIT_CMD = '/usr/bin/git'
 MAKE_CMD = '/usr/bin/make'
-WORK_DIR = '/nullunit'
+WORK_DIR = '/nullunit/src'  # if the dir is a ends in src, it will make go and it's GOPATH happy
 
 if os.path.exists( '/usr/bin/apt-get' ):
-  PKG_INSTAL = '/usr/bin/apt-get install -y %s'
+  PKG_UPDATE = '/usr/bin/apt-get update'
+  PKG_INSTALL = '/usr/bin/apt-get install -y %s'
 
 elif os.path.exists( '/usr/bin/yum' ):
-  PKG_INSTAL = '/usr/bin/yum install -y %s'
+  PKG_UPDATE = '/usr/bin/yum clean all'
+  PKG_INSTALL = '/usr/bin/yum install -y %s'
 
 else:
   raise Exception( 'can\'t detect package manager' )
@@ -35,6 +37,30 @@ def _makeDidNothing( results ):
     return True
 
   return False
+
+
+def _makeAndGetValues( mcp, state, target, args, env ):
+  ( item_list, rc ) = execute_lines_rc( '%s -s %s %s' % ( MAKE_CMD, target, ' '.join( args ) ), state[ 'dir' ], env=env )
+
+  if rc != 0:
+    if rc == 2 and _makeDidNothing( item_list ):
+      return []
+
+    else:
+      logging.info( 'iterate: error getting requires' )
+      mcp.setResults( 'Error getting requires:\n' + '\n'.join( item_list ) )
+      return None
+
+  results = []
+  for item in item_list:
+    if item.startswith( 'make:' ) or item.startswith( 'make[' ): # make was unhappy about something, skip that line.... if it was important it will come out later
+      continue
+
+    item = item.strip()
+    if item:
+      results.append( item  )
+
+  return results
 
 
 def _isPackageBuild( state ):
@@ -118,39 +144,45 @@ def doCheckout( state ):
 
 
 def doRequires( state, mcp, config ):
-  logging.info( 'iterate: getting requires "%s"' % state[ 'requires' ] )
+  logging.info( 'iterate: getting requires for "%s"' % state[ 'target' ] )
   args = []
-
-  if not _isPackageBuild( state ):
-    args.append( 'RESOURCE_NAME="%s"' % config.get( 'mcp', 'resource_name' ) )
-    args.append( 'RESOURCE_INDEX=%s' % config.get( 'mcp', 'resource_index' ) )
 
   env = os.environ
   env[ 'DEBIAN_PRIORITY' ] = 'critical'
   env[ 'DEBIAN_FRONTEND' ] = 'noninteractive'
-  ( results, rc ) = execute_lines_rc( '%s -s %s %s' % ( MAKE_CMD, state[ 'requires' ], ' '.join( args ) ), state[ 'dir' ], env=env )
 
-  if rc != 0:
-    if rc == 2 and _makeDidNothing( results ):
-      return True
-
-    else:
-      logging.info( 'iterate: error getting requires' )
-      mcp.setResults( 'Error getting requires:\n' + '\n'.join( results ) )
+  if not _isPackageBuild( state ):
+    values = {}
+    args.append( 'RESOURCE_NAME="%s"' % config.get( 'mcp', 'resource_name' ) )
+    args.append( 'RESOURCE_INDEX=%s' % config.get( 'mcp', 'resource_index' ) )
+    item_list = _makeAndGetValues( mcp, state, '%s-config' % state[ 'target' ], args, env )
+    if item_list is None:
       return False
 
-  for required in results:
-    if required.startswith( 'make:' ) or required.startswith( 'make[' ): # make was unhappy about something, skip that line.... if it was important it will come out later
-      continue
+    for item in item_list:
+      ( key, value ) = item.split( ':', 1 )
+      if value[0] in ( '[', '{' ):
+        value = json.loads( value )
 
-    required = required.strip()
-    if not required:
-      continue
+      values[ key ] = value
 
+    if values:
+      if not mcp.setConfigValues( values, config.get( 'mcp', 'resource_name' ), config.get( 'mcp', 'resource_index' ), 1 ):
+        raise Exception( 'iterate: Error Setting Configuration Vaules' )
+
+  required_list = _makeAndGetValues( mcp, state, '%s-requires' % state[ 'target' ], args, env )
+  if required_list is None:
+    return False
+
+  logging.info( 'iterate: updating pkg metadata' )
+  execute( PKG_UPDATE )
+
+  for required in required_list:
     logging.info( 'iterate: installing "%s"' % required )
-    execute( PKG_INSTAL % required )
+    execute( PKG_INSTALL % required )
 
   return True
+
 
 def doTarget( state, mcp, config ):
   args = []
@@ -159,28 +191,26 @@ def doTarget( state, mcp, config ):
     if not packrat:
       raise Exception( 'iterate: Error Connecting to packrat' )
 
-    logging.info( 'iterate: executing target clean' )
+    logging.info( 'iterate: executing clean' )
     ( results, rc ) = execute_lines_rc( '%s clean' % MAKE_CMD, state[ 'dir' ] )
-
     if rc != 0:
       if rc == 2 and not _makeDidNothing( results ):
         mcp.setResults( 'Error with clean\n' + '\n'.join( results ) )
-        return False
-
-    ( results, rc ) = execute_lines_rc( '%s %s-setup' % ( MAKE_CMD, state[ 'target' ] ), state[ 'dir' ] )
-
-    if rc != 0:
-      if rc == 2 and not _makeDidNothing( results ):
-        mcp.setResults( ( 'Error with %s-setup\n' % state[ 'target' ] ) + '\n'.join( results ) )
         return False
 
   else:
     args.append( 'RESOURCE_NAME="%s"' % config.get( 'mcp', 'resource_name' ) )
     args.append( 'RESOURCE_INDEX=%s' % config.get( 'mcp', 'resource_index' ) )
 
+  logging.info( 'iterate: executing setup "%s"' % state[ 'target' ] )
+  ( results, rc ) = execute_lines_rc( '%s %s-setup %s' % ( MAKE_CMD, state[ 'target' ], ' '.join( args ) ), state[ 'dir' ] )
+  if rc != 0:
+    if rc == 2 and not _makeDidNothing( results ):
+      mcp.setResults( ( 'Error with %s-setup\n' % state[ 'target' ] ) + '\n'.join( results ) )
+      return False
+
   logging.info( 'iterate: executing target "%s"' % state[ 'target' ] )
   ( target_results, rc ) = execute_lines_rc( '%s %s %s' % ( MAKE_CMD, state[ 'target' ], ' '.join( args ) ), state[ 'dir' ] )
-
   if rc != 0:
     if rc == 2 and _makeDidNothing( target_results ):
       mcp.setResults( 'Nothing Built' )
@@ -193,9 +223,9 @@ def doTarget( state, mcp, config ):
   mcp.setResults( '\n'.join( target_results ) )
 
   if _isPackageBuild( state ):
-    logging.info( 'iterate: getting package file "%s"' % state[ 'requires' ] )
+    logging.info( 'iterate: getting package file "%s"' % state[ 'target' ] )
     mcp.sendStatus( 'Package Build' )
-    ( results, rc ) = execute_lines_rc( '%s -s %s-file' % ( MAKE_CMD, state[ 'target' ] ), state[ 'dir' ] )
+    ( results, rc ) = execute_lines_rc( '%s -s %s-file %s' % ( MAKE_CMD, state[ 'target' ], ' '.join( args ) ), state[ 'dir' ] )
     if rc != 0 or len( results ) == 0:
       mcp.setResults( ( 'Error getting %s-file\n' % state[ 'target' ] ) + '\n'.join( results ) )
       return False

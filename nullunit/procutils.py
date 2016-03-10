@@ -19,6 +19,11 @@ def open_output( filename ):
   global debug_stdout
   debug_stdout = open( filename, 'w' )
 
+def close_output():
+  global debug_stdout
+  debug_stdout.close()
+  debug_stdout = None
+
 
 def _execute( cmd, dir, stdin, env ):
   logging.info( 'procutils: executing "%s" in "%s"' % ( cmd, dir ) )

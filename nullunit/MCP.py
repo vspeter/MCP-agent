@@ -3,7 +3,7 @@ import logging
 from cinp import client
 
 class MCP( object ):
-  def __init__( self, host, proxy, job_id, name, index  ):
+  def __init__( self, host, proxy, job_id, name, index ):
     self.cinp = client.CInP( host, '/api/v1', proxy )
     self.job_id = job_id
     self.name = name
@@ -46,3 +46,21 @@ class MCP( object ):
       args[ 'count' ] = count
 
     return self.cinp.call( '/api/v1/Processor/BuildJob:%s:(getProvisioningInfo)' % self.job_id, args )[ 'value' ]
+
+  def setConfigValues( self, values, resource, index=None, count=None ):
+    logging.info( 'MCP: Setting Config Values "%s" index: "%s", count: "%s"' % ( resource, index, count ) )
+    args = { 'name': resource }
+    if index is not None:
+      args[ 'index' ] = index
+
+    if count is not None:
+      args[ 'count' ] = count
+
+    args[ 'values' ] = values
+
+    return self.cinp.call( '/api/v1/Processor/BuildJob:%s:(setConfigValues)' % self.job_id, args )[ 'value' ]
+
+  def getNetworkInfo( self, network ):
+    logging.info( 'MCP: Network Info for "%s"' % network )
+    args = { 'name': network }
+    return self.cinp.call( '/api/v1/Processor/BuildJob:%s:(getNetworkInfo)' % self.job_id, args )[ 'value' ]

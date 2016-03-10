@@ -19,7 +19,7 @@ oparser = OptionParser( description='nullunit Plato Master Sync/Loader' )
 
 oparser.add_option( '-v', '--verbose', dest='verbose', default=False, action='store_true' )
 
-# query options
+oparser.add_option( '-n', '--network', help='(query) with network name, requires -p/--pod', dest='network', default=None )
 oparser.add_option( '-r', '--resource', help='(query) with resource name', dest='resource', default=None )
 oparser.add_option( '-i', '--index', help='(query) query with resource index\n(if count is specified, this is the starting index, otherwise one will be returned)', dest='index', default=None, type='int' )
 oparser.add_option( '-c', '--count', help='(query) count', dest='count', default=None, type='int' )
@@ -118,12 +118,12 @@ logger = logging.getLogger()
 if options.verbose:
   logger.setLevel( logging.DEBUG )
 
-if options.resource is None:
-  print 'resource name is required'
+config = getConfig()
+if not config:
   sys.exit( 1 )
 
-if ( options.existing is None ) and ( ( options.pod is None ) or ( options.profile is None ) ):
-  print 'pod and/or profile is required when not using existing configs'
+mcp = getMCP( config )
+if not mcp:
   sys.exit( 1 )
 
 if options.pod:
@@ -136,13 +136,44 @@ if options.pod:
 else:
   pod = None
 
-config = getConfig()
-if not config:
+# do network
+
+if options.network:
+  if pod is None:
+    print 'Pod is required'
+    sys.exit( 1 )
+
+  try:
+    subnet = SubNet.objects.get( description=options.network, pod=pod )
+  except SubNet.DoesNotExist:
+    subnet = SubNet()
+    subnet.pod = pod
+    subnet.description = options.network
+
+  network_info = mcp.getNetworkInfo( options.network )
+
+  subnet.network = network_info[ 'network' ]
+  subnet.prefix = network_info[ 'prefix' ]
+  subnet.gateway = network_info.get( 'gateway', None )
+  subnet.broadcast = network_info.get( 'broadcast', None )
+  subnet.vlan = network_info.get( 'vlan', None )
+  subnet.save()
+
+  sys.exit( 0 )
+
+# do compute resource
+
+if options.resource is None:
+  print 'resource name is required'
   sys.exit( 1 )
 
-mcp = getMCP( config )
-if not mcp:
+if ( options.existing is None ) and ( ( options.pod is None ) or ( options.profile is None ) ):
+  print 'pod and/or profile is required when not using existing configs'
   sys.exit( 1 )
+
+
+
+
 
 provisioning_list = mcp.getProvisioningInfo( options.resource, options.index, options.count ).values()
 

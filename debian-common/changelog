@@ -1,3 +1,44 @@
+nullunit (0.18-1) DIST; urgency=medium
+
+  * change workd dir to help out go builds
+
+ -- Peter <peter@blueboy>  Thu, 10 Mar 2016 10:09:02 -0700
+
+nullunit (0.17-3) DIST; urgency=medium
+
+  * run <target>-setup for all targets, 
+    not just package ones
+
+ -- Peter <peter@blueboy>  Tue, 02 Feb 2016 15:17:33 -0700
+
+nullunit (0.16-2) DIST; urgency=medium
+
+  * reboot after getting config to make sure
+    system is cleanly loaded as it's new id
+
+ -- Peter <peter@blueboy>  Mon, 25 Jan 2016 15:05:16 -0700
+
+nullunit (0.15-6) DIST; urgency=medium
+
+  * support for network resources
+  * support for pushing config values
+  * support for reading config values
+  * nullunit now runs all at once
+
+ -- Peter <peter@blueboy>  Mon, 18 Jan 2016 10:31:41 -0700
+
+nullunit (0.14-2) DIST; urgency=medium
+
+  * to a repo update before installing requirements
+
+ -- Peter <peter@blueboy>  Tue, 12 Jan 2016 16:41:39 -0700
+
+nullunit (0.13-1) DIST; urgency=medium
+
+  * Preallocation support
+
+ -- Peter <peter@blueboy>  Tue, 12 Jan 2016 08:26:23 -0700
+
 nullunit (0.12-1) DIST; urgency=medium
 
   * handeling multiple package files per line

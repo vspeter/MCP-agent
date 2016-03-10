@@ -5,6 +5,7 @@
 [mcp]
 host: {{ mcp_host }}
 proxy: {{ mcp_proxy }}
+prealloc: {{ mcp_prealloc }}
 job_id: {{ mcp_job_id }}
 resource_name: {{ mcp_resource_name }}
 resource_index: {{ mcp_resource_index }}
@@ -14,7 +15,6 @@ url: {{ mcp_git_url }}
 branch: {{ mcp_git_branch }}
 
 [make]
-requires: {{ mcp_make_requires }}
 target: {{ mcp_make_target }}
 
 [packrat]
