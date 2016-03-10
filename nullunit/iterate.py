@@ -12,7 +12,7 @@ from procutils import execute, execute_lines_rc
 
 GIT_CMD = '/usr/bin/git'
 MAKE_CMD = '/usr/bin/make'
-WORK_DIR = '/nullunit'
+WORK_DIR = '/nullunit/src'  # if the dir is a ends in src, it will make go and it's GOPATH happy
 
 if os.path.exists( '/usr/bin/apt-get' ):
   PKG_UPDATE = '/usr/bin/apt-get update'
