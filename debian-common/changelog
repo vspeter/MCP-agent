@@ -1,6 +1,7 @@
-nullunit (0.18-1) DIST; urgency=medium
+nullunit (0.18-2) DIST; urgency=medium
 
   * change workd dir to help out go builds
+  * saving more output
 
  -- Peter <peter@blueboy>  Thu, 10 Mar 2016 10:09:02 -0700
 

@@ -68,7 +68,7 @@ def _execute( cmd, dir, stdin, env ):
 
   logging.info( 'procutils: returned "%s"' % proc.returncode )
 
-  return ( printable.sub( '', stdout )[ -2000: ], proc.returncode )
+  return ( printable.sub( '', stdout )[ -100000: ], proc.returncode )
 
 
 def execute( cmd, dir=None, stdin=None, env=global_env ):
