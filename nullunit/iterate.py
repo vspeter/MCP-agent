@@ -146,6 +146,7 @@ def doCheckout( state ):
 def doRequires( state, mcp, config ):
   logging.info( 'iterate: getting requires for "%s"' % state[ 'target' ] )
   args = []
+  args.append( 'NULLUNIT=1' )
 
   env = os.environ
   env[ 'DEBIAN_PRIORITY' ] = 'critical'
@@ -186,6 +187,8 @@ def doRequires( state, mcp, config ):
 
 def doTarget( state, mcp, config ):
   args = []
+  args.append( 'NULLUNIT=1' )
+
   if _isPackageBuild( state ):
     packrat = getPackrat( config )
     if not packrat:
