@@ -216,7 +216,6 @@ def doTarget( state, mcp, config ):
   ( target_results, rc ) = execute_lines_rc( '%s %s %s' % ( MAKE_CMD, state[ 'target' ], ' '.join( args ) ), state[ 'dir' ] )
   if rc != 0:
     if rc == 2 and _makeDidNothing( target_results ):
-      mcp.setResults( 'Nothing Built' )
       return True
 
     else:
