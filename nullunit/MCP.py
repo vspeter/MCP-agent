@@ -22,7 +22,11 @@ class MCP( object ):
     self.cinp.call( '/api/v1/Processor/BuildJob:%s:(setResourceSuccess)' % self.job_id, { 'name': self.name, 'index': self.index, 'success': success } )
 
   def setResults( self, results ):
-    logging.info( 'MCP: Results "%s"' % results[ :100 ].strip() )
+    if results is not None:
+      logging.info( 'MCP: Results "%s"' % results[ -100: ].strip() )
+    else
+      logging.info( 'MCP: Results <empty>' )
+
     self.cinp.call( '/api/v1/Processor/BuildJob:%s:(setResourceResults)' % self.job_id, { 'name': self.name, 'index': self.index, 'results': results } )
 
   def getConfigStatus( self, resource, index=None, count=None ):
