@@ -32,6 +32,7 @@ oparser.add_option_group( ogroup )
 ogroup = OptionGroup( oparser, 'Data Reterival Options', 'Retrieve the following information, only one' )
 #ogroup.add_option(       '--config', help='get plato config config', dest='config', default=False, action='store_true' )
 #ogroup.add_option(       '--device', help='get plato device config', dest='device', default=False, action='store_true' )
+ogroup.add_option(       '--resource-count', help='get the number of resources that fit the query', dest='resource_count', default=False, action='store_true' )
 ogroup.add_option(       '--primary-ip', help='get the primary ip', dest='primary_ip', default=False, action='store_true' )
 ogroup.add_option(       '--get-keyval', help='get value for config key', dest='get_keyval', type='string' )
 oparser.add_option_group( ogroup )
@@ -113,7 +114,7 @@ if options.set_keyval:
   sys.exit( 0 )
 
 #Data Retreival Options
-if options.primary_ip or options.get_keyval:
+if options.primary_ip or options.get_keyval or options.resource_count:
   if options.resource is None:
     print 'Resource Name is required'
     sys.exit( 1 )
@@ -132,14 +133,21 @@ if options.primary_ip or options.get_keyval:
     for config in config_list:
       result.append( config[ 'address_provisioning' ][ 'address' ] )
 
-  else:
+  elif options.get_keyval:
     for config in config_list:
       try:
         result.append( config[ options.get_keyval ] )
       except KeyError:
         result.append( '<not found>' )
 
-  if options.count == 1:
+  elif options.resource_count:
+    result = len( config_list )
+
+  else:
+    print 'Trouble with data retreival option'
+    sys.exit( 1 )
+
+  if options.count == 1 and isinstance( result, list ):
     result = result[0] # there is only one, no point outputing a list
 
   if options.file:
@@ -152,9 +160,12 @@ if options.primary_ip or options.get_keyval:
   else:
     if isinstance( result, basestring ):
       output.write( result )
+    elif isinstance( result, int ):
+      output.write( str( result ) )
     else:
       for item in result:
         output.write( '%s\n' % item )
+
   sys.exit( 0 )
 
 oparser.print_help()
