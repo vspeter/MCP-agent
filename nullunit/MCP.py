@@ -24,7 +24,7 @@ class MCP( object ):
   def setResults( self, results ):
     if results is not None:
       logging.info( 'MCP: Results "%s"' % results[ -100: ].strip() )
-    else
+    else:
       logging.info( 'MCP: Results <empty>' )
 
     self.cinp.call( '/api/v1/Processor/BuildJob:%s:(setResourceResults)' % self.job_id, { 'name': self.name, 'index': self.index, 'results': results } )
