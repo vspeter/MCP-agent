@@ -223,7 +223,11 @@ def doTarget( state, mcp, config ):
       mcp.setResults( ( 'Error with target %s\n' % state[ 'target' ] ) + '\n'.join( target_results ) )
       return False
 
-  mcp.setResults( '\n'.join( target_results ) )
+  if _makeDidNothing( target_results ):
+    mcp.setResults( None )
+    return True
+  else:
+    mcp.setResults( '\n'.join( target_results ) )
 
   if _isPackageBuild( state ):
     logging.info( 'iterate: getting package file "%s"' % state[ 'target' ] )
