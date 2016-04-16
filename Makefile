@@ -26,9 +26,10 @@ full-clean: clean
 	$(RM) -f rpm-setup
 
 test-distros:
-	echo precise trusty centos6
+	echo precise trusty xenial centos6
 
 test-requires:
+	echo python-cinp
 ifeq (centos, $(DISTRO))
 	echo pytest
 else ifeq (precise, $(DISTRO_NAME))
