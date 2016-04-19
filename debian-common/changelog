@@ -1,3 +1,10 @@
+nullunit (0.19-1) DIST; urgency=medium
+
+  * lint and test score returnd to MCP
+  * package list returnd to MCP
+
+ -- Peter <peter@blueboy>  Fri, 15 Apr 2016 22:45:00 -0600
+
 nullunit (0.18-7) DIST; urgency=medium
 
   * change workd dir to help out go builds

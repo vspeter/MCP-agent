@@ -14,6 +14,11 @@ GIT_CMD = '/usr/bin/git'
 MAKE_CMD = '/usr/bin/make'
 WORK_DIR = '/nullunit/src'  # if the dir is a ends in src, it will make go and it's GOPATH happy
 
+SCORE_RE = re.compile( '^==-- SCORE: ([0-9])? --==$' )
+
+# make sure something like "make: *** No rule to make target `XXXX', needed by `XXXX'.  Stop." still fails
+DIDNOTHING_RE_LIST = [ re.compile( '^make(\[[0-9]+\])?: \*\*\* No rule to make .* Stop\.$' ), re.compile( '^make(\[[0-9]+\])?: Nothing to be done for .*\.$' ) ]
+
 if os.path.exists( '/usr/bin/apt-get' ):
   PKG_UPDATE = '/usr/bin/apt-get update'
   PKG_INSTALL = '/usr/bin/apt-get install -y %s'
@@ -29,12 +34,9 @@ def _makeDidNothing( results ):
   if len( results ) != 1:
     return False
 
-  # make sure something like "make: *** No rule to make target `XXXX', needed by `XXXX'.  Stop." still fails
-  if re.search( '^make(\[[0-9]+\])?: \*\*\* No rule to make .* Stop\.$', results[0] ):
-    return True
-
-  if re.search( '^make(\[[0-9]+\])?: Nothing to be done for .*\.$', results[0] ):
-    return True
+  for item in DIDNOTHING_RE_LIST:
+    if item.search( results[0] ):
+      return True
 
   return False
 
@@ -185,7 +187,7 @@ def doRequires( state, mcp, config ):
   return True
 
 
-def doTarget( state, mcp, config ):
+def doTarget( state, mcp, config ): # we allways setResults and setScore to clear out any previous run's results there might be
   args = []
   args.append( 'NULLUNIT=1' )
 
@@ -229,6 +231,17 @@ def doTarget( state, mcp, config ):
   else:
     mcp.setResults( '\n'.join( target_results ) )
 
+  score_list = []
+  for line in target_results:
+    match = SCORE_RE.search( line )
+    if match:
+      score_list.append( match.group( 1 ) )
+
+  if len( score_list ) > 0:
+    mcp.setScore( sum( score_list ) / len( score_list ) )
+  else:
+    mcp.setScore( None )
+
   if _isPackageBuild( state ):
     logging.info( 'iterate: getting package file "%s"' % state[ 'target' ] )
     mcp.sendStatus( 'Package Build' )
@@ -237,6 +250,7 @@ def doTarget( state, mcp, config ):
       mcp.setResults( ( 'Error getting %s-file\n' % state[ 'target' ] ) + '\n'.join( results ) )
       return False
 
+    package_file_list = []
     filename_list = []
     for line in results:
       filename_list += line.split()
@@ -263,6 +277,7 @@ def doTarget( state, mcp, config ):
 
       except Exception as e:
         logging.exception( 'iterate: Exception "%s" while adding package file "%s"' % ( e, filename ) )
+        mcp.uploadedPackages( package_file_list )
         mcp.setResults( 'Exception adding package file "%s"' % filename )
         src.close()
         return False
@@ -273,8 +288,10 @@ def doTarget( state, mcp, config ):
         raise Exception( 'Packrat was unable to detect distro, options are "%s"' % result )
 
       target_results.append( '=== File "%s" uploaded.' % os.path.basename( filename ) )
+      package_file_list.append( os.path.basename( filename ) )
 
       if not result:
+        mcp.uploadedPackages( package_file_list )
         mcp.sendStatus( 'Packge(s) NOT (all) Uploaded' )
         return False
 
@@ -284,7 +301,7 @@ def doTarget( state, mcp, config ):
     packrat.logout()
 
     mcp.sendStatus( 'Package(s) Uploaded' )
-
+    mcp.uploadedPackages( package_file_list )
     mcp.setResults( '\n'.join( target_results ) )
 
   return True

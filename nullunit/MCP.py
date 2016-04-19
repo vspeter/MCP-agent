@@ -29,6 +29,20 @@ class MCP( object ):
 
     self.cinp.call( '/api/v1/Processor/BuildJob:%s:(setResourceResults)' % self.job_id, { 'name': self.name, 'index': self.index, 'results': results } )
 
+  def setScore( self, score ):
+    if score is not None:
+      logging.info( 'MCP: Score "%s"' % score )
+    else:
+      logging.info( 'MCP: Score <undefined>' )
+
+    self.cinp.call( '/api/v1/Processor/BuildJob:%s:(setResourceScore)' % self.job_id, { 'name': self.name, 'index': self.index, 'score': score } )
+
+  def uploadedPackages( self, package_file_list ):
+    if not package_file_list:
+      return
+
+    self.cinp.call( '/api/v1/Processor/BuildJob:%s:(addPackageFiles)' % self.job_id, { 'name': self.name, 'index': self.index, 'package_files_list': package_file_list } )
+
   def getConfigStatus( self, resource, index=None, count=None ):
     logging.info( 'MCP: Config Status for "%s" index: "%s", count: "%s"' % ( resource, index, count ) )
     args = { 'name': resource }
