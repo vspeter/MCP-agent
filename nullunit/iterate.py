@@ -137,10 +137,13 @@ def doCheckout( state ):
   logging.info( 'iterate: checking out "%s"' % state[ 'branch' ] )
   execute( '%s checkout %s' % ( GIT_CMD, state[ 'branch' ] ), state[ 'dir' ] )
 
+  tmp = int( time.time() ) - ( 3600 * 24 )  # hopfully nothing is clock skewed more than this
+  times = ( tmp, tmp )
+
   for ( root, dirname_list, filename_list ) in os.walk( state[ 'dir' ] ):  # go through and `touch` everything.
     for filename in filename_list:
       try:                                                                   # clock skew is a fact of life, we are building everything anyway
-        os.utime( os.path.join( root, filename ), None )                     # this helps make not complain about the future
+        os.utime( os.path.join( root, filename ), times )                    # this helps make not complain about the future
       except OSError:
         pass
 
