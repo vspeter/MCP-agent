@@ -5,6 +5,7 @@ import shutil
 import logging
 import socket
 import re
+import time
 from datetime import datetime
 from nullunit.common import getPackrat
 
