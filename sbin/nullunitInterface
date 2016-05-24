@@ -148,7 +148,10 @@ if options.primary_ip or options.get_keyval or options.resource_count:
     sys.exit( 1 )
 
   if options.count == 1 and isinstance( result, list ):
-    result = result[0] # there is only one, no point outputing a list
+    try:
+      result = result[0] # there is only one, no point outputing a list
+    except IndexError:
+      result = ''  # don't do None, this will output `None`
 
   if options.file:
     output = file( options.file, 'w' )
