@@ -4,11 +4,16 @@ from threading import Thread
 
 from cinp import client
 
+PACKRAT_API_VERSION = 'v1.1'
+
 class KeepAlive( Thread ):
   def __init__( self, cinp, *args, **kwargs ):
     super( KeepAlive, self ).__init__( *args, **kwargs )
     self.daemon = True
     self.cinp = cinp
+    root = self.cinp.describe( '/api/v1/Repos' )[0]
+    if root[ 'api-version' ] != PACKRAT_API_VERSION:
+      raise Exception( 'Expected API version "%s" found "%s"' % ( PACKRAT_API_VERSION, root[ 'api-version' ] ) )
 
   def run( self ):
     while self.cinp:
@@ -26,7 +31,7 @@ class Packrat( object ):
 
   def logout( self ):
     self.keepalive.cinp = None
-    self.cinp.call( '/api/v1/Auth(logout)', { 'username': self.name, 'token': self.token } )
+    self.cinp.call( '/api/v1/Auth(logout)', { 'token': self.token } )
 
   def _callback( self, pos, size ):
     logging.debug( 'Packrat: Uploading at %s of %s' % ( pos, size ) )
