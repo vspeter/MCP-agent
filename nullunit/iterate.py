@@ -294,9 +294,10 @@ def doTarget( state, mcp, config ): # we allways setResults and setScore to clea
       target_results.append( '=== File "%s" uploaded.' % os.path.basename( filename ) )
       package_file_list.append( os.path.basename( filename ) )
 
-      if not result:
+      if result is not None:
+        mcp.sendStatus( 'Packge(s) NOT (all) Uploaded: result "%s"' % result )
         mcp.uploadedPackages( package_file_list )
-        mcp.sendStatus( 'Packge(s) NOT (all) Uploaded' )
+        mcp.setResults( '\n'.join( target_results ) )
         return False
 
       if not packrat.checkFileName( os.path.basename( filename ) ):
