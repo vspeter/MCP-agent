@@ -7,7 +7,7 @@ import socket
 import re
 import time
 from datetime import datetime
-from nullunit.common import getPackrat
+from nullunit.common import getPackrat, uploadToConfluence
 
 from procutils import execute, execute_lines_rc
 
@@ -69,6 +69,9 @@ def _makeAndGetValues( mcp, state, target, args, env ):
 def _isPackageBuild( state ):
   return state[ 'target' ] in ( 'dpkg', 'rpm', 'respkg', 'resource' )
 
+
+def _isPackageLintTestBuild( state ):
+  return state[ 'target' ] in ( 'test', 'lint', 'dpkg', 'rpm', 'respkg', 'resource', 'docs' )
 
 def readState( file ):
   try:
@@ -158,7 +161,7 @@ def doRequires( state, mcp, config ):
   env[ 'DEBIAN_PRIORITY' ] = 'critical'
   env[ 'DEBIAN_FRONTEND' ] = 'noninteractive'
 
-  if not _isPackageBuild( state ):
+  if not _isPackageLintTestBuild( state ):
     values = {}
     args.append( 'RESOURCE_NAME="%s"' % config.get( 'mcp', 'resource_name' ) )
     args.append( 'RESOURCE_INDEX=%s' % config.get( 'mcp', 'resource_index' ) )
@@ -207,7 +210,7 @@ def doTarget( state, mcp, config ): # we allways setResults and setScore to clea
         mcp.setResults( 'Error with clean\n' + '\n'.join( results ) )
         return False
 
-  else:
+  if not _isPackageLintTestBuild( state ):
     args.append( 'RESOURCE_NAME="%s"' % config.get( 'mcp', 'resource_name' ) )
     args.append( 'RESOURCE_INDEX=%s' % config.get( 'mcp', 'resource_index' ) )
 
@@ -246,6 +249,22 @@ def doTarget( state, mcp, config ): # we allways setResults and setScore to clea
   else:
     mcp.setScore( None )
 
+  # if docs, upload to confluence
+  if state == 'docs':
+    if rc != 0 or len( results ) == 0:
+      mcp.setResults( ( 'Error getting %s-file\n' % state[ 'target' ] ) + '\n'.join( results ) )
+      return False
+
+    filename_list = []
+    for line in results:
+      filename_list += line.split()
+
+    for filename in filename_list:
+      ( local_filename, confluence_filename ) = filename.split( ':' )
+      uploadToConfluence( config, local_filename, confluence_filename  )
+
+
+  # if package/resource upload to packrat
   if _isPackageBuild( state ):
     logging.info( 'iterate: getting package file "%s"' % state[ 'target' ] )
     mcp.sendStatus( 'Package Build' )

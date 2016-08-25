@@ -33,3 +33,9 @@ def getPackrat( config ):
   except ConfigParser.Error:
     logging.error( 'Error retreiving Packrat host, and/or proxy from config file' )
     return None
+
+
+def uploadToConfluence( config, local_filename, confluence_filename ):
+  pass
+  # upload files to confluence
+  # https://developer.atlassian.com/confdev/confluence-server-rest-api/confluence-rest-api-examples
