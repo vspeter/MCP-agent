@@ -7,7 +7,8 @@ import socket
 import re
 import time
 from datetime import datetime
-from nullunit.common import getPackrat, uploadToConfluence
+from nullunit.common import getPackrat
+from nullunit.confluence import uploadToConfluence
 
 from procutils import execute, execute_lines_rc
 
@@ -262,7 +263,6 @@ def doTarget( state, mcp, config ): # we allways setResults and setScore to clea
     for filename in filename_list:
       ( local_filename, confluence_filename ) = filename.split( ':' )
       uploadToConfluence( config, local_filename, confluence_filename  )
-
 
   # if package/resource upload to packrat
   if _isPackageBuild( state ):

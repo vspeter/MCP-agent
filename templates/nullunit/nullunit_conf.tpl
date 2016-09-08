@@ -25,6 +25,7 @@ psk: {{ packrat_builder_psk }}
 
 [confluence]
 host: {{ confluence_host }}
+proxy: {{ confluence_proxy }}
 username: {{ confluence_username }}
 password: {{ confluence_password }}
 {% endtarget %}
