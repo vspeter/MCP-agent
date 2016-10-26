@@ -172,7 +172,7 @@ def doRequires( state, mcp, config ):
 
     for item in item_list:
       ( key, value ) = item.split( ':', 1 )
-      if value[0] in ( '[', '{' ):
+      if len( value ) > 1 and value[0] in ( '[', '{' ):
         value = json.loads( value )
 
       values[ key ] = value
