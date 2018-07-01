@@ -3,18 +3,21 @@ DISTRO_MAJOR_VERSION := $(shell lsb_release -sr | cut -d. -f1)
 DISTRO_NAME := $(shell lsb_release -sc | tr A-Z a-z)
 
 all:
+	./setup.py build
 
 install:
-	mkdir -p $(DESTDIR)usr/sbin
-	mkdir -p $(DESTDIR)etc/mcp
-	mkdir -p $(DESTDIR)var/lib/plato/templates/nullunit/
-	install -m 644 templates/nullunit/* $(DESTDIR)var/lib/plato/templates/nullunit/
-	install -m 755 sbin/nullunitIterate $(DESTDIR)usr/sbin
-	install -m 755 sbin/nullunitInterface $(DESTDIR)usr/sbin
-	install -m 755 sbin/nullunitMasterSync $(DESTDIR)usr/sbin
-	install -m 755 sbin/nullunitAddPackageFile $(DESTDIR)usr/sbin
+	mkdir -p $(DESTDIR)/usr/sbin
+	mkdir -p $(DESTDIR)/etc/mcp
+	mkdir -p $(DESTDIR)/var/lib/plato/templates/nullunit/
+	install -m 644 templates/nullunit/* $(DESTDIR)/var/lib/plato/templates/nullunit/
+	install -m 755 sbin/nullunitIterate $(DESTDIR)/usr/sbin
+	install -m 755 sbin/nullunitInterface $(DESTDIR)/usr/sbin
+	install -m 755 sbin/nullunitAddPackageFile $(DESTDIR)/usr/sbin
+
+	./setup.py install --root $(DESTDIR) --install-purelib=/usr/lib/python3/dist-packages/ --prefix=/usr --no-compile -O0
 
 clean:
+	./setup.py clean
 	$(RM) -fr build
 	$(RM) -f dpkg
 	$(RM) -f rpm

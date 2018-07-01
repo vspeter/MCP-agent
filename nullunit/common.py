@@ -13,7 +13,7 @@ def getConfig():
   try:
     config.read( CONFIG_FILE )
   except ConfigParser.Error as e:
-    logging.error( 'Error reading config file: %s' % e )
+    logging.error( 'Error reading config file: {0}'.format( e ) )
     return None
 
   return config

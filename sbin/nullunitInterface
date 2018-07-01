@@ -1,4 +1,4 @@
-#!/usr/bin/python -u
+#!/usr/bin/env python3
 
 import sys
 import logging
@@ -30,8 +30,8 @@ oparser.add_option_group( ogroup )
 
 # data options
 ogroup = OptionGroup( oparser, 'Data Reterival Options', 'Retrieve the following information, only one' )
-#ogroup.add_option(       '--config', help='get plato config config', dest='config', default=False, action='store_true' )
-#ogroup.add_option(       '--device', help='get plato device config', dest='device', default=False, action='store_true' )
+# ogroup.add_option(       '--config', help='get plato config config', dest='config', default=False, action='store_true' )
+# ogroup.add_option(       '--device', help='get plato device config', dest='device', default=False, action='store_true' )
 ogroup.add_option(       '--resource-count', help='get the number of resources that fit the query', dest='resource_count', default=False, action='store_true' )
 ogroup.add_option(       '--primary-ip', help='get the primary ip', dest='primary_ip', default=False, action='store_true' )
 ogroup.add_option(       '--get-keyval', help='get value for config key', dest='get_keyval', type='string' )
@@ -72,14 +72,14 @@ if options.signal_ran:
 # status options
 if options.are_configured:
   if options.resource is None:
-    print 'Resource Name is required'
+    print( 'Resource Name is required' )
     sys.exit( 1 )
 
   status_list = mcp.getConfigStatus( options.resource, options.index, options.count )
   result = True
   for item in status_list:
     if options.verbose:
-      print '%s - %s' % ( item, status_list[ item ] )
+      print( '{0} - {1}'.format( item, status_list[ item ] ) )
 
     result &= ( status_list[ item ] == 'Configured' )
 
@@ -91,7 +91,7 @@ if options.are_configured:
 # data setting options
 if options.set_keyval:
   if options.resource is None:
-    print 'Resource Name is required'
+    print( 'Resource Name is required' )
     sys.exit( 1 )
 
   values = {}
@@ -99,7 +99,7 @@ if options.set_keyval:
     try:
       ( key, value ) = item.split( ':', 1 )
     except IndexError:
-      print 'Error parsing item: "%s"' % item
+      print( 'Error parsing item: "{0}"'.format( item ) )
       sys.exit( 1 )
 
     if value[0] in ( '[', '{' ):
@@ -108,15 +108,15 @@ if options.set_keyval:
     values[ key ] = value
 
   if not mcp.setConfigValues( values, options.resource, options.index, options.count ):
-    print 'Error setting config Values "%s"' % values
+    print( 'Error setting config Values "{0}"'.format( values ) )
     sys.exit( 1 )
 
   sys.exit( 0 )
 
-#Data Retreival Options
+# Data Retreival Options
 if options.primary_ip or options.get_keyval or options.resource_count:
   if options.resource is None:
-    print 'Resource Name is required'
+    print( 'Resource Name is required' )
     sys.exit( 1 )
 
   result = []
@@ -144,30 +144,30 @@ if options.primary_ip or options.get_keyval or options.resource_count:
     result = len( config_list )
 
   else:
-    print 'Trouble with data retreival option'
+    print( 'Trouble with data retreival option' )
     sys.exit( 1 )
 
   if options.count == 1 and isinstance( result, list ):
     try:
-      result = result[0] # there is only one, no point outputing a list
+      result = result[0]  # there is only one, no point outputing a list
     except IndexError:
       result = ''  # don't do None, this will output `None`
 
   if options.file:
-    output = file( options.file, 'w' )
+    output = open( options.file, 'w' )
   else:
     output = sys.stdout
 
   if options.json:
     output.write( json.dumps( result ) )
   else:
-    if isinstance( result, basestring ):
+    if isinstance( result, str ):
       output.write( result )
     elif isinstance( result, int ):
       output.write( str( result ) )
     else:
       for item in result:
-        output.write( '%s\n' % item )
+        output.write( '{0}\n'.format( item ) )
 
   sys.exit( 0 )
 
