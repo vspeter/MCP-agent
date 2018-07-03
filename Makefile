@@ -8,8 +8,8 @@ all:
 install:
 	mkdir -p $(DESTDIR)/usr/sbin
 	mkdir -p $(DESTDIR)/etc/mcp
-	mkdir -p $(DESTDIR)/var/lib/plato/templates/nullunit/
-	install -m 644 templates/nullunit/* $(DESTDIR)/var/lib/plato/templates/nullunit/
+	mkdir -p $(DESTDIR)/var/lib/config-manager/templates/nullunit/
+	install -m 644 templates/nullunit/* $(DESTDIR)/var/lib/config-manager/templates/nullunit/
 	install -m 755 sbin/nullunitIterate $(DESTDIR)/usr/sbin
 	install -m 755 sbin/nullunitInterface $(DESTDIR)/usr/sbin
 	install -m 755 sbin/nullunitAddPackageFile $(DESTDIR)/usr/sbin
