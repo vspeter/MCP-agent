@@ -61,6 +61,8 @@ def _execute( cmd, dir, stdin, env ):
   except Exception as e:
     raise Exception( 'Exception {0} while executing "{1}"'.format( e, cmd ) )
 
+  stdout = stdout.decode()
+
   debug_stdout.write( stdout )
 
   debug_stdout.write( '\n-------------------------------------------------\n' )

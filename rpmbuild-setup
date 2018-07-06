@@ -49,7 +49,7 @@ cp debian-common/cron.d %{buildroot}/etc/cron.d/nullunit
 
 %post
 echo "Rebuilding config files..."
-/usr/sbin/configManager -c nullunit
+/usr/sbin/config-curator -c nullunit
 
 echo "Reloading cron..."
 /etc/init.d/cron reload || true

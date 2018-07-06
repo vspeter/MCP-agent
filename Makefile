@@ -6,13 +6,13 @@ all:
 	./setup.py build
 
 install:
-	mkdir -p $(DESTDIR)/usr/sbin
+	mkdir -p $(DESTDIR)/usr/bin
 	mkdir -p $(DESTDIR)/etc/mcp
-	mkdir -p $(DESTDIR)/var/lib/config-manager/templates/nullunit/
-	install -m 644 templates/nullunit/* $(DESTDIR)/var/lib/config-manager/templates/nullunit/
-	install -m 755 sbin/nullunitIterate $(DESTDIR)/usr/sbin
-	install -m 755 sbin/nullunitInterface $(DESTDIR)/usr/sbin
-	install -m 755 sbin/nullunitAddPackageFile $(DESTDIR)/usr/sbin
+	mkdir -p $(DESTDIR)/var/lib/config-curator/templates/nullunit/
+	install -m 755 bin/nullunitIterate $(DESTDIR)/usr/bin
+	install -m 755 bin/nullunitInterface $(DESTDIR)/usr/bin
+	install -m 755 bin/nullunitAddPackageFile $(DESTDIR)/usr/bin
+	install -m 644 templates/nullunit/* $(DESTDIR)/var/lib/config-curator/templates/nullunit/
 
 	./setup.py install --root $(DESTDIR) --install-purelib=/usr/lib/python3/dist-packages/ --prefix=/usr --no-compile -O0
 

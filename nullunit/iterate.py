@@ -9,8 +9,7 @@ import time
 from datetime import datetime
 from nullunit.common import getPackrat
 from nullunit.confluence import uploadToConfluence
-
-from procutils import execute, execute_lines_rc
+from nullunit.procutils import execute, execute_lines_rc
 
 GIT_CMD = '/usr/bin/git'
 MAKE_CMD = '/usr/bin/make'
@@ -296,7 +295,7 @@ def doTarget( state, mcp, config ):  # we allways setResults and setScore to cle
         continue
 
       logging.info( 'iterate: uploading "{0}"'.format( filename ) )
-      src = open( filename, 'r' )
+      src = open( filename, 'rb' )
       try:
         result = packrat.addPackageFile( src, 'Package File "{0}"'.format( os.path.basename( filename ) ), 'MCP Auto Build from {0}.  Build on {1} at {2}'.format( state[ 'url' ], socket.getfqdn(), datetime.utcnow() ), version )
 

@@ -1,3 +1,11 @@
+nullunit (0.22-1) DIST; urgency=medium
+
+  * Ported to Python3
+  * Updated to work with new MCP that uses Contractor
+  * Updated to to packrat api 1.5 
+
+ -- Peter <peter@xps15>  Sat, 07 Jul 2018 22:09:34 -0600
+
 nullunit (0.21-1) DIST; urgency=medium
 
   * updates for docs target
