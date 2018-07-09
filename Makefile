@@ -29,7 +29,7 @@ full-clean: clean
 	$(RM) -f rpm-setup
 
 test-distros:
-	echo xenial
+	echo ubuntu-xenial
 
 test-requires:
 	echo python-cinp
@@ -55,13 +55,10 @@ ifeq (trusty, $(DISTRO_NAME))
 endif
 
 dpkg-distros:
-	echo xenial
+	echo ubuntu-xenial
 
 dpkg-requires:
-	echo dpkg-dev debhelper cdbs
-ifneq (xenial, $(DISTRO_NAME))
-	echo python-support
-endif
+	echo dpkg-dev debhelper python3-support
 
 dpkg-setup:
 	./debian-setup
@@ -75,7 +72,7 @@ dpkg-file:
 	echo $(shell ls ../nullunit_*.deb)
 
 rpm-distros:
-	#echo centos6
+	echo centos6
 
 rpm-requires:
 	echo rpm-build
