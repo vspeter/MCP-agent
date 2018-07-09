@@ -29,7 +29,7 @@ full-clean: clean
 	$(RM) -f rpm-setup
 
 test-distros:
-	echo precise trusty xenial centos6
+	echo xenial
 
 test-requires:
 	echo python-cinp
@@ -55,7 +55,7 @@ ifeq (trusty, $(DISTRO_NAME))
 endif
 
 dpkg-distros:
-	echo precise trusty xenial
+	echo xenial
 
 dpkg-requires:
 	echo dpkg-dev debhelper cdbs
@@ -75,7 +75,7 @@ dpkg-file:
 	echo $(shell ls ../nullunit_*.deb)
 
 rpm-distros:
-	echo centos6
+	#echo centos6
 
 rpm-requires:
 	echo rpm-build
