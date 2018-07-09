@@ -105,7 +105,6 @@ if state is None:
 counter = 0
 while cont:
   if state[ 'state' ] in ( 'done', 'failed' ):
-    mcp.sendStatus( 'Ran' )
     if config.get( 'make', 'target' ) in ( 'lint', 'test', 'dpkg', 'respkg', 'rpm', 'resource', 'docs' ):
       logging.info( 'Signaling Job Ran' )
       mcp.signalJobRan()
@@ -119,22 +118,28 @@ while cont:
   try:
     doStep( state, mcp, config )
   except Exception as e:
-    logging.exception( 'Exception in doStep for "{0}".'.format( state[ 'state' ] ) )
-    mcp.sendStatus( 'Exception: ({0}) "{1}"'.format( e.__class__.__name__, e ) )
-    logging.shutdown()
-    sys.exit( 1 )
+    logging.exception( 'Unhandled Exception in doStep for "{0}".'.format( state[ 'state' ] ) )
+    mcp.sendStatus( 'Unhandled Exception: ({0}) "{1}"'.format( e.__class__.__name__, e ) )
+    state[ 'state' ] = 'failed'
+    mcp.setSuccess( False )
 
   close_output()
 
   logging.info( 'Writing State' )
   writeState( STATE_FILE, state )
 
-  if options.step:
+  if options.step or state[ 'state' ] == 'failed':
     break
 
   time.sleep( 2 )
 
-logging.info( 'Done' )
 os.unlink( PID_FILE )
+
+if state[ 'state' ] == 'failed':
+  logging.info( 'Failed, Quitting.' )
+  logging.shutdown()
+  sys.exit( 1 )
+
+logging.info( 'Done' )
 logging.shutdown()
 sys.exit( 0 )
