@@ -16,6 +16,10 @@ global_env = os.environ
 printable = re.compile( '[^{0}]'.format( string.printable ) )
 
 
+class ExecutionException( Exception ):
+  pass
+
+
 def open_output( filename ):
   global debug_stdout
   debug_stdout = open( filename, 'w' )
@@ -59,7 +63,7 @@ def _execute( cmd, dir, stdin, env ):
       ( stdout, _ ) = proc.communicate()
 
   except Exception as e:
-    raise Exception( 'Exception {0} while executing "{1}"'.format( e, cmd ) )
+    raise ExecutionException( 'Exception {0} while executing "{1}"'.format( e, cmd ) )
 
   stdout = stdout.decode()
 
@@ -78,7 +82,7 @@ def _execute( cmd, dir, stdin, env ):
 def execute( cmd, dir=None, stdin=None, env=global_env ):
   ( _, rc ) = _execute( cmd, dir, stdin, env )
   if rc != 0:
-    raise Exception( 'Error Executing "{0}", rc: {1}'.format( cmd, rc ) )
+    raise ExecutionException( 'Error Executing "{0}", rc: {1}'.format( cmd, rc ) )
 
 
 def execute_lines_rc( cmd, dir=None, stdin=None, env=global_env ):
@@ -89,6 +93,6 @@ def execute_lines_rc( cmd, dir=None, stdin=None, env=global_env ):
 def execute_lines( cmd, dir=None, stdin=None, env=global_env ):
   ( results, rc ) = _execute( cmd, dir, stdin, env )
   if rc != 0:
-    raise Exception( 'Error Executing "{0}", rc: {1}'.format( cmd, rc ) )
+    raise ExecutionException( 'Error Executing "{0}", rc: {1}'.format( cmd, rc ) )
 
   return results.splitlines()

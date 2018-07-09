@@ -32,17 +32,10 @@ test-distros:
 	echo ubuntu-xenial
 
 test-requires:
-	echo python-cinp
-ifeq (centos, $(DISTRO))
-	echo pytest
-else ifeq (precise, $(DISTRO_NAME))
-	echo python-py
-else
-	echo python-pytest
-endif
+	echo python3-cinp python3-pytest
 
 test:
-	cd tests && py.test -x iterate.py
+	cd tests && py.test-3 -x iterate.py
 
 lint-requires:
 ifeq (trusty, $(DISTRO_NAME))

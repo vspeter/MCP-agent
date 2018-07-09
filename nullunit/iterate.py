@@ -9,7 +9,7 @@ import time
 from datetime import datetime
 from nullunit.common import getPackrat
 from nullunit.confluence import uploadToConfluence
-from nullunit.procutils import execute, execute_lines_rc
+from nullunit.procutils import execute, execute_lines_rc, ExecutionException
 
 GIT_CMD = '/usr/bin/git'
 MAKE_CMD = '/usr/bin/make'
@@ -135,13 +135,22 @@ def doClone( state ):
       raise e
 
   logging.info( 'iterate: cloning "{0}"'.format( state[ 'url' ] ) )
-  execute( '{0} clone {1}'.format( GIT_CMD, state[ 'url' ] ), WORK_DIR )
+  try:
+    execute( '{0} clone {1}'.format( GIT_CMD, state[ 'url' ] ), WORK_DIR )
+  except ExecutionException as e:
+    logging.error( 'ExecutionException "{0}" while cloning' )
+    raise Exception( 'Exception "{0}" while cloning' )
+
   return glob.glob( '{0}/*'.format( WORK_DIR ) )[0]
 
 
 def doCheckout( state ):
   logging.info( 'iterate: checking out "{0}"'.format( state[ 'branch' ] ) )
-  execute( '{0} checkout {1}'.format( GIT_CMD, state[ 'branch' ] ), state[ 'dir' ] )
+  try:
+    execute( '{0} checkout {1}'.format( GIT_CMD, state[ 'branch' ] ), state[ 'dir' ] )
+  except ExecutionException as e:
+    logging.error( 'ExecutionException "{0}" while cloning' )
+    raise Exception( 'Exception "{0}" while cloning' )
 
   tmp = int( time.time() ) - ( 3600 * 24 )  # hopfully nothing is clock skewed more than this
   times = ( tmp, tmp )
@@ -187,11 +196,19 @@ def doRequires( state, mcp, config ):
     return False
 
   logging.info( 'iterate: updating pkg metadata' )
-  execute( PKG_UPDATE )
+  try:
+    execute( PKG_UPDATE )
+  except ExecutionException as e:
+    logging.error( 'ExecutionException "{0}" while updating packaging info for required packages' )
+    raise Exception( 'Exception "{0}" while updating packaging info for required packages' )
 
   for required in required_list:
     logging.info( 'iterate: installing "{0}"'.format( required ) )
-    execute( PKG_INSTALL.format( required ) )
+    try:
+      execute( PKG_INSTALL.format( required ) )
+    except ExecutionException as e:
+      logging.error( 'ExecutionException "{0}" while installing required packages' )
+      raise Exception( 'Exception "{0}" while installing required packages' )
 
   return True
 
