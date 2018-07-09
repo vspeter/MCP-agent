@@ -1,10 +1,10 @@
-#!/usr/bin/python -u
+#!/usr/bin/env python3
 
 import sys
 import os
 from optparse import OptionParser
 import logging
-import ConfigParser
+import configparser
 import signal
 import time
 from logging.handlers import SysLogHandler
@@ -16,10 +16,12 @@ from nullunit.procutils import open_output, close_output
 PID_FILE = '/var/run/nullunitIterate.pid'
 STATE_FILE = '/var/lib/mcp/nullunitIterate.state'
 
+
 def _sigHandler( sig, frame ):
   global cont
-  logging.debug( 'Got Signal %d, stopping...' % sig )
+  logging.debug( 'Got Signal {0}, stopping...'.format( sig ) )
   cont = False
+
 
 oparser = OptionParser( description='nullunit iterator' )
 
@@ -47,7 +49,7 @@ if os.path.exists( PID_FILE ):
   sys.exit( 0 )
 
 tmp = open( PID_FILE, 'w' )
-tmp.write( '%s\n' % os.getpid() )
+tmp.write( '{0}\n'.format( os.getpid() ) )
 tmp.close()
 
 cont = True
@@ -61,13 +63,15 @@ if not config:
   logging.shutdown()
   sys.exit( 1 )
 
-if config.get( 'mcp', 'prealloc' ): # this needs to be re-thought, when plato uses CINP we can ask directly for this nodes satus
-  logging.warning( 'Preallocated, waiting for insturctions' )
-  os.system( 'configManager -c nullunit -g' )
+if not config.get( 'mcp', 'job_id' ):
+  os.system( 'config-curator -c nullunit -g' )
   config = getConfig()
-  if not config.get( 'mcp', 'prealloc' ):
-    os.system( 'configManager -c -a -g' )
+  if config.get( 'mcp', 'job_id' ):
+    os.system( 'config-curator -c -a -g' )
     os.system( 'reboot' )
+
+  else:
+    logging.warning( 'Preallocated, waiting for instructions' )
 
   os.unlink( PID_FILE )
   logging.shutdown()
@@ -82,8 +86,8 @@ if not mcp:
 
 try:
   state = readState( STATE_FILE )
-except ConfigParser.Error as e:
-  print 'Error retreiving git url, git branch, and/or make target from config file'
+except configparser.Error as e:
+  print( 'Error retreiving git url, git branch, and/or make target from config file' )
   os.unlink( PID_FILE )
   logging.shutdown()
   sys.exit( 1 )
@@ -110,13 +114,13 @@ while cont:
     break
 
   counter += 1
-  open_output( '/tmp/nullunitIterate_debug.%s.%s.log' % ( os.getpid(), counter ) )
+  open_output( '/tmp/nullunitIterate_debug.{0}.{1}.log'.format( os.getpid(), counter ) )
 
   try:
     doStep( state, mcp, config )
   except Exception as e:
-    logging.exception( 'Exception in doStep for "%s".' % state[ 'state' ] )
-    mcp.sendStatus( 'Exception: (%s) "%s"' % ( e.__class__.__name__, e ) )
+    logging.exception( 'Exception in doStep for "{0}".'.format( state[ 'state' ] ) )
+    mcp.sendStatus( 'Exception: ({0}) "{1}"'.format( e.__class__.__name__, e ) )
     logging.shutdown()
     sys.exit( 1 )
 

@@ -1,5 +1,5 @@
 #!/bin/sh
-# postinst script for tmp
+# postinst script for nullunit
 #
 # see: dh_installdeb(1)
 
@@ -25,7 +25,7 @@ set -e
 case "$1" in
     configure)
         echo "Rebuilding config files..."
-        /usr/sbin/configManager -c nullunit
+        /usr/sbin/config-curator -c nullunit
 
         echo "Reloading cron..."
         /etc/init.d/cron reload || true

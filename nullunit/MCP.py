@@ -2,49 +2,51 @@ import logging
 
 from cinp import client
 
+
 class MCP( object ):
-  def __init__( self, host, proxy, job_id, name, index ):
-    self.cinp = client.CInP( host, '/api/v1', proxy )
-    self.job_id = job_id
-    self.name = name
-    self.index = index
+  def __init__( self, host, proxy, instance_id, cookie ):
+    self.cinp = client.CInP( host, '/api/v1/', proxy )
+    self.instance_id = instance_id
+    self.cookie = cookie
 
   def signalJobRan( self ):
     logging.info( 'MCP: Signal Job Ran' )
-    self.cinp.call( '/api/v1/Processor/BuildJob:%s:(jobRan)' % self.job_id, {} )
+    self.cinp.call( '/api/v1/Processor/Instance:{0}:(jobRan)'.format( self.instance_id ), { 'cookie': self.cookie } )
 
   def sendStatus( self, status ):
-    logging.info( 'MCP: Status "%s"' % status )
-    self.cinp.call( '/api/v1/Processor/BuildJob:%s:(updateResourceState)' % self.job_id, { 'name': self.name, 'index': self.index, 'status': status } )
+    logging.info( 'MCP: Status "{0}"'.format( status ) )
+    self.cinp.call( '/api/v1/Processor/Instance:{0}:(setStatus)'.format( self.instance_id ), { 'cookie': self.cookie, 'status': status } )
 
   def setSuccess( self, success ):
-    logging.info( 'MCP: Success "%s"' % success )
-    self.cinp.call( '/api/v1/Processor/BuildJob:%s:(setResourceSuccess)' % self.job_id, { 'name': self.name, 'index': self.index, 'success': success } )
+    logging.info( 'MCP: Success "{0}"'.format( success ) )
+    self.cinp.call( '/api/v1/Processor/Instance:{0}:(setSuccess)'.format( self.instance_id ), { 'cookie': self.cookie, 'success': success } )
 
   def setResults( self, results ):
     if results is not None:
-      logging.info( 'MCP: Results "%s"' % results[ -100: ].strip() )
+      logging.info( 'MCP: Results "{0}"'.format( results[ -100: ].strip() ) )
     else:
       logging.info( 'MCP: Results <empty>' )
 
-    self.cinp.call( '/api/v1/Processor/BuildJob:%s:(setResourceResults)' % self.job_id, { 'name': self.name, 'index': self.index, 'results': results } )
+    self.cinp.call( '/api/v1/Processor/Instance:{0}:(setResults)'.format( self.instance_id ), { 'cookie': self.cookie, 'results': results } )
 
   def setScore( self, score ):
     if score is not None:
-      logging.info( 'MCP: Score "%s"' % score )
+      logging.info( 'MCP: Score "{0}"'.format(* score ) )
     else:
       logging.info( 'MCP: Score <undefined>' )
 
-    self.cinp.call( '/api/v1/Processor/BuildJob:%s:(setResourceScore)' % self.job_id, { 'name': self.name, 'index': self.index, 'score': score } )
+    self.cinp.call( '/api/v1/Processor/Instance:{0}:(setScore)'.format( self.instance_id ), { 'cookie': self.cookie, 'score': score } )
 
   def uploadedPackages( self, package_files ):
     if not package_files:
       return
 
-    self.cinp.call( '/api/v1/Processor/BuildJob:%s:(addPackageFiles)' % self.job_id, { 'name': self.name, 'index': self.index, 'package_files': package_files } )
+    self.cinp.call( '/api/v1/Processor/Instance:{0}:(addPackageFiles)'.format( self.instance_id ), { 'cookie': self.cookie, 'package_files': package_files } )
 
   def getConfigStatus( self, resource, index=None, count=None ):
-    logging.info( 'MCP: Config Status for "%s" index: "%s", count: "%s"' % ( resource, index, count ) )
+    raise Exception( 'Not Updated' )
+
+    logging.info( 'MCP: Config Status for "{0}" index: "{1}", count: "{2}"'.format( resource, index, count ) )
     args = { 'name': resource }
     if index is not None:
       args[ 'index' ] = index
@@ -52,10 +54,12 @@ class MCP( object ):
     if count is not None:
       args[ 'count' ] = count
 
-    return self.cinp.call( '/api/v1/Processor/BuildJob:%s:(getConfigStatus)' % self.job_id, args )[ 'value' ]
+    return self.cinp.call( '/api/v1/Processor/BuildJob:{0}:(getConfigStatus)'.format( self.job_id ), args )
 
   def getProvisioningInfo( self, resource, index=None, count=None ):
-    logging.info( 'MCP: Provisioning Info for "%s" index: "%s", count: "%s"' % ( resource, index, count ) )
+    raise Exception( 'Not Updated' )
+
+    logging.info( 'MCP: Provisioning Info for "{0}" index: "{1}", count: "{2}"'.format( resource, index, count ) )
     args = { 'name': resource }
     if index is not None:
       args[ 'index' ] = index
@@ -63,22 +67,9 @@ class MCP( object ):
     if count is not None:
       args[ 'count' ] = count
 
-    return self.cinp.call( '/api/v1/Processor/BuildJob:%s:(getProvisioningInfo)' % self.job_id, args )[ 'value' ]
+    return self.cinp.call( '/api/v1/Processor/BuildJob:{0}:(getProvisioningInfo)'.format( self.job_id ), args )
 
-  def setConfigValues( self, values, resource, index=None, count=None ):
-    logging.info( 'MCP: Setting Config Values "%s" index: "%s", count: "%s"' % ( resource, index, count ) )
-    args = { 'name': resource }
-    if index is not None:
-      args[ 'index' ] = index
+  def setValue( self, value_map  ):
+    logging.info( 'MCP: Setting Value "{0}"'.format( value_map ) )
 
-    if count is not None:
-      args[ 'count' ] = count
-
-    args[ 'values' ] = values
-
-    return self.cinp.call( '/api/v1/Processor/BuildJob:%s:(setConfigValues)' % self.job_id, args )[ 'value' ]
-
-  def getNetworkInfo( self, network ):
-    logging.info( 'MCP: Network Info for "%s"' % network )
-    args = { 'name': network }
-    return self.cinp.call( '/api/v1/Processor/BuildJob:%s:(getNetworkInfo)' % self.job_id, args )[ 'value' ]
+    return self.cinp.call( '/api/v1/Processor/Instance:{0}:(setConfigValues)'.format( self.instance_id ), { 'cookie': self.cookie, 'value_map': value_map } )

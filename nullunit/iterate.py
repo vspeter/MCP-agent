@@ -9,8 +9,7 @@ import time
 from datetime import datetime
 from nullunit.common import getPackrat
 from nullunit.confluence import uploadToConfluence
-
-from procutils import execute, execute_lines_rc
+from nullunit.procutils import execute, execute_lines_rc
 
 GIT_CMD = '/usr/bin/git'
 MAKE_CMD = '/usr/bin/make'
@@ -23,14 +22,15 @@ DIDNOTHING_RE_LIST = [ re.compile( '^make(\[[0-9]+\])?: \*\*\* No rule to make .
 
 if os.path.exists( '/usr/bin/apt-get' ):
   PKG_UPDATE = '/usr/bin/apt-get update'
-  PKG_INSTALL = '/usr/bin/apt-get install -y %s'
+  PKG_INSTALL = '/usr/bin/apt-get install -y {0}'
 
 elif os.path.exists( '/usr/bin/yum' ):
   PKG_UPDATE = '/usr/bin/yum clean all'
-  PKG_INSTALL = '/usr/bin/yum install -y %s'
+  PKG_INSTALL = '/usr/bin/yum install -y {0}'
 
 else:
   raise Exception( 'can\'t detect package manager' )
+
 
 def _makeDidNothing( results ):
   if len( results ) != 1:
@@ -44,7 +44,7 @@ def _makeDidNothing( results ):
 
 
 def _makeAndGetValues( mcp, state, target, args, env ):
-  ( item_list, rc ) = execute_lines_rc( '%s -s %s %s' % ( MAKE_CMD, target, ' '.join( args ) ), state[ 'dir' ], env=env )
+  ( item_list, rc ) = execute_lines_rc( '{0} -s {1} {2}'.format( MAKE_CMD, target, ' '.join( args ) ), state[ 'dir' ], env=env )
 
   if rc != 0:
     if rc == 2 and _makeDidNothing( item_list ):
@@ -57,7 +57,7 @@ def _makeAndGetValues( mcp, state, target, args, env ):
 
   results = []
   for item in item_list:
-    if item.startswith( 'make:' ) or item.startswith( 'make[' ): # make was unhappy about something, skip that line.... if it was important it will come out later
+    if item.startswith( 'make:' ) or item.startswith( 'make[' ):  # make was unhappy about something, skip that line.... if it was important it will come out later
       continue
 
     item = item.strip()
@@ -74,10 +74,11 @@ def _isPackageBuild( state ):
 def _isPackageLintTestBuild( state ):
   return state[ 'target' ] in ( 'test', 'lint', 'dpkg', 'rpm', 'respkg', 'resource', 'docs' )
 
+
 def readState( file ):
   try:
     state = json.loads( open( file, 'r' ).read() )
-  except:
+  except Exception:
     return None
 
   return state
@@ -89,8 +90,8 @@ def writeState( file, state ):
 
 def doStep( state, mcp, config ):
   start_state = state[ 'state' ]
-  mcp.sendStatus( 'Executing Stage "%s"' % start_state )
-  logging.info( 'iterate: Executing Stage "%s"' % start_state )
+  mcp.sendStatus( 'Executing Stage "{0}"'.format( start_state ) )
+  logging.info( 'iterate: Executing Stage "{0}"'.format( start_state ) )
 
   if start_state == 'clone':
     state[ 'dir' ] = doClone( state )
@@ -117,8 +118,8 @@ def doStep( state, mcp, config ):
       state[ 'state' ] = 'failed'
       mcp.setSuccess( False )
 
-  mcp.sendStatus( 'Stage "%s" Complete' % start_state )
-  logging.info( 'iterate: Stage "%s" Complete' % start_state )
+  mcp.sendStatus( 'Stage "{0}" Complete'.format( start_state ) )
+  logging.info( 'iterate: Stage "{0}" Complete'.format( start_state ) )
 
 
 def doClone( state ):
@@ -126,21 +127,21 @@ def doClone( state ):
     os.makedirs( WORK_DIR )
 
   except OSError as e:
-    if e.errno == 17: # allready exists
+    if e.errno == 17:  # allready exists
       shutil.rmtree( WORK_DIR )
       os.makedirs( WORK_DIR )
 
     else:
       raise e
 
-  logging.info( 'iterate: cloning "%s"' % state[ 'url' ] )
-  execute( '%s clone %s' % ( GIT_CMD, state[ 'url' ] ), WORK_DIR )
-  return glob.glob( '%s/*' % WORK_DIR )[0]
+  logging.info( 'iterate: cloning "{0}"'.format( state[ 'url' ] ) )
+  execute( '{0} clone {1}'.format( GIT_CMD, state[ 'url' ] ), WORK_DIR )
+  return glob.glob( '{0}/*'.format( WORK_DIR ) )[0]
 
 
 def doCheckout( state ):
-  logging.info( 'iterate: checking out "%s"' % state[ 'branch' ] )
-  execute( '%s checkout %s' % ( GIT_CMD, state[ 'branch' ] ), state[ 'dir' ] )
+  logging.info( 'iterate: checking out "{0}"'.format( state[ 'branch' ] ) )
+  execute( '{0} checkout {1}'.format( GIT_CMD, state[ 'branch' ] ), state[ 'dir' ] )
 
   tmp = int( time.time() ) - ( 3600 * 24 )  # hopfully nothing is clock skewed more than this
   times = ( tmp, tmp )
@@ -154,7 +155,7 @@ def doCheckout( state ):
 
 
 def doRequires( state, mcp, config ):
-  logging.info( 'iterate: getting requires for "%s"' % state[ 'target' ] )
+  logging.info( 'iterate: getting requires for "{0}"'.format( state[ 'target' ] ) )
   args = []
   args.append( 'NULLUNIT=1' )
 
@@ -164,9 +165,9 @@ def doRequires( state, mcp, config ):
 
   if not _isPackageLintTestBuild( state ):
     values = {}
-    args.append( 'RESOURCE_NAME="%s"' % config.get( 'mcp', 'resource_name' ) )
-    args.append( 'RESOURCE_INDEX=%s' % config.get( 'mcp', 'resource_index' ) )
-    item_list = _makeAndGetValues( mcp, state, '%s-config' % state[ 'target' ], args, env )
+    args.append( 'RESOURCE_NAME="{0}"'.format( config.get( 'mcp', 'resource_name' ) ) )
+    args.append( 'RESOURCE_INDEX={0}'.format( config.get( 'mcp', 'resource_index' ) ) )
+    item_list = _makeAndGetValues( mcp, state, '{0}-config'.format( state[ 'target' ] ), args, env )
     if item_list is None:
       return False
 
@@ -181,7 +182,7 @@ def doRequires( state, mcp, config ):
       if not mcp.setConfigValues( values, config.get( 'mcp', 'resource_name' ), config.get( 'mcp', 'resource_index' ), 1 ):
         raise Exception( 'iterate: Error Setting Configuration Vaules' )
 
-  required_list = _makeAndGetValues( mcp, state, '%s-requires' % state[ 'target' ], args, env )
+  required_list = _makeAndGetValues( mcp, state, '{0}-requires'.format( state[ 'target' ] ), args, env )
   if required_list is None:
     return False
 
@@ -189,13 +190,13 @@ def doRequires( state, mcp, config ):
   execute( PKG_UPDATE )
 
   for required in required_list:
-    logging.info( 'iterate: installing "%s"' % required )
-    execute( PKG_INSTALL % required )
+    logging.info( 'iterate: installing "{0}"'.format( required ) )
+    execute( PKG_INSTALL.format( required ) )
 
   return True
 
 
-def doTarget( state, mcp, config ): # we allways setResults and setScore to clear out any previous run's results there might be
+def doTarget( state, mcp, config ):  # we allways setResults and setScore to clear out any previous run's results there might be
   args = []
   args.append( 'NULLUNIT=1' )
 
@@ -205,32 +206,32 @@ def doTarget( state, mcp, config ): # we allways setResults and setScore to clea
       raise Exception( 'iterate: Error Connecting to packrat' )
 
     logging.info( 'iterate: executing clean' )
-    ( results, rc ) = execute_lines_rc( '%s clean' % MAKE_CMD, state[ 'dir' ] )
+    ( results, rc ) = execute_lines_rc( '{0} clean'.format( MAKE_CMD ), state[ 'dir' ] )
     if rc != 0:
       if rc == 2 and not _makeDidNothing( results ):
         mcp.setResults( 'Error with clean\n' + '\n'.join( results ) )
         return False
 
   if not _isPackageLintTestBuild( state ):
-    args.append( 'RESOURCE_NAME="%s"' % config.get( 'mcp', 'resource_name' ) )
-    args.append( 'RESOURCE_INDEX=%s' % config.get( 'mcp', 'resource_index' ) )
+    args.append( 'RESOURCE_NAME="{0}"'.format( config.get( 'mcp', 'resource_name' ) ) )
+    args.append( 'RESOURCE_INDEX={0}'.format( config.get( 'mcp', 'resource_index' ) ) )
 
-  logging.info( 'iterate: executing setup "%s"' % state[ 'target' ] )
-  ( results, rc ) = execute_lines_rc( '%s %s-setup %s' % ( MAKE_CMD, state[ 'target' ], ' '.join( args ) ), state[ 'dir' ] )
+  logging.info( 'iterate: executing setup "{0}"'.format( state[ 'target' ] ) )
+  ( results, rc ) = execute_lines_rc( '{0} {1}-setup {2}'.format( MAKE_CMD, state[ 'target' ], ' '.join( args ) ), state[ 'dir' ] )
   if rc != 0:
     if rc == 2 and not _makeDidNothing( results ):
-      mcp.setResults( ( 'Error with %s-setup\n' % state[ 'target' ] ) + '\n'.join( results ) )
+      mcp.setResults( ( 'Error with {0}-setup\n'.format( state[ 'target' ] ) ) + '\n'.join( results ) )
       return False
 
-  logging.info( 'iterate: executing target "%s"' % state[ 'target' ] )
-  ( target_results, rc ) = execute_lines_rc( '%s %s %s' % ( MAKE_CMD, state[ 'target' ], ' '.join( args ) ), state[ 'dir' ] )
+  logging.info( 'iterate: executing target "{0}"'.format( state[ 'target' ] ) )
+  ( target_results, rc ) = execute_lines_rc( '{0} {1} {2}'.format( MAKE_CMD, state[ 'target' ], ' '.join( args ) ), state[ 'dir' ] )
   if rc != 0:
     if rc == 2 and _makeDidNothing( target_results ):
       mcp.setResults( None )
       return True
 
     else:
-      mcp.setResults( ( 'Error with target %s\n' % state[ 'target' ] ) + '\n'.join( target_results ) )
+      mcp.setResults( ( 'Error with target {0}\n'.format( state[ 'target' ] ) ) + '\n'.join( target_results ) )
       return False
 
   if _makeDidNothing( target_results ):
@@ -253,7 +254,7 @@ def doTarget( state, mcp, config ): # we allways setResults and setScore to clea
   # if docs, upload to confluence
   if state == 'docs':
     if rc != 0 or len( results ) == 0:
-      mcp.setResults( ( 'Error getting %s-file\n' % state[ 'target' ] ) + '\n'.join( results ) )
+      mcp.setResults( ( 'Error getting {0}-file\n'.format( state[ 'target' ] ) ) + '\n'.join( results ) )
       return False
 
     filename_list = []
@@ -266,11 +267,11 @@ def doTarget( state, mcp, config ): # we allways setResults and setScore to clea
 
   # if package/resource upload to packrat
   if _isPackageBuild( state ):
-    logging.info( 'iterate: getting package file "%s"' % state[ 'target' ] )
+    logging.info( 'iterate: getting package file "{0}"'.format( state[ 'target' ] ) )
     mcp.sendStatus( 'Package Build' )
-    ( results, rc ) = execute_lines_rc( '%s -s %s-file %s' % ( MAKE_CMD, state[ 'target' ], ' '.join( args ) ), state[ 'dir' ] )
+    ( results, rc ) = execute_lines_rc( '{0} -s {1}-file {2}'.format( MAKE_CMD, state[ 'target' ], ' '.join( args ) ), state[ 'dir' ] )
     if rc != 0 or len( results ) == 0:
-      mcp.setResults( ( 'Error getting %s-file\n' % state[ 'target' ] ) + '\n'.join( results ) )
+      mcp.setResults( ( 'Error getting {0}-file\n'.format( state[ 'target' ] ) ) + '\n'.join( results ) )
       return False
 
     package_file_list = []
@@ -284,43 +285,43 @@ def doTarget( state, mcp, config ): # we allways setResults and setScore to clea
       except ValueError:
         version = None
 
-      if filename[0] != '/': #it's not an aboslute path, prefix is with the working dir
+      if filename[0] != '/':  # it's not an aboslute path, prefix is with the working dir
         filename = os.path.realpath( os.path.join( state[ 'dir' ], filename ) )
 
       if packrat.checkFileName( os.path.basename( filename ) ):
-        mcp.setResults( 'Filename "%s" is allready in use in packrat, skipping the file in upload.' % os.path.basename( filename ) )
-        logging.warning( 'Filename ""%s" allready on packrat, skipping...' % os.path.basename( filename ) )
-        target_results.append( '=== File "%s" skipped.' % os.path.basename( filename ) )
+        mcp.setResults( 'Filename "{0}" is allready in use in packrat, skipping the file in upload.'.format( os.path.basename( filename ) ) )
+        logging.warning( 'Filename "{0}" allready on packrat, skipping...'.format( os.path.basename( filename ) ) )
+        target_results.append( '=== File "{0}" skipped.'.format( os.path.basename( filename ) ) )
         continue
 
-      logging.info( 'iterate: uploading "%s"' % filename )
-      src = open( filename, 'r' )
+      logging.info( 'iterate: uploading "{0}"'.format( filename ) )
+      src = open( filename, 'rb' )
       try:
-        result = packrat.addPackageFile( src, 'Package File "%s"' % os.path.basename( filename ), 'MCP Auto Build from %s.  Build on %s at %s' % ( state[ 'url' ], socket.getfqdn(), datetime.utcnow() ), version )
+        result = packrat.addPackageFile( src, 'Package File "{0}"'.format( os.path.basename( filename ) ), 'MCP Auto Build from {0}.  Build on {1} at {2}'.format( state[ 'url' ], socket.getfqdn(), datetime.utcnow() ), version )
 
       except Exception as e:
-        logging.exception( 'iterate: Exception "%s" while adding package file "%s"' % ( e, filename ) )
+        logging.exception( 'iterate: Exception "{0}" while adding package file "{1}"'.format( e, filename ) )
         mcp.uploadedPackages( package_file_list )
-        mcp.setResults( 'Exception adding package file "%s"' % filename )
+        mcp.setResults( 'Exception adding package file "{0}"'.format( filename ) )
         src.close()
         return False
 
       src.close()
 
       if isinstance( result, list ):
-        raise Exception( 'Packrat was unable to detect distro, options are "%s"' % result )
+        raise Exception( 'Packrat was unable to detect distro, options are "{0}"'.format( result ) )
 
-      target_results.append( '=== File "%s" uploaded.' % os.path.basename( filename ) )
+      target_results.append( '=== File "{0}" uploaded.'.format( os.path.basename( filename ) ) )
       package_file_list.append( os.path.basename( filename ) )
 
       if result is not None:
-        mcp.sendStatus( 'Packge(s) NOT (all) Uploaded: result "%s"' % result )
+        mcp.sendStatus( 'Packge(s) NOT (all) Uploaded: result "{0}"'.format( result ) )
         mcp.uploadedPackages( package_file_list )
         mcp.setResults( '\n'.join( target_results ) )
         return False
 
       if not packrat.checkFileName( os.path.basename( filename ) ):
-        raise Exception( 'Recently added file "%s" not showing in packrat.' % os.path.basename( filename ) )
+        raise Exception( 'Recently added file "{0}" not showing in packrat.'.format( os.path.basename( filename ) ) )
 
     packrat.logout()
 
