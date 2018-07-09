@@ -29,7 +29,7 @@ full-clean: clean
 	$(RM) -f rpm-setup
 
 test-distros:
-	echo precise trusty xenial centos6
+	echo xenial
 
 test-requires:
 	echo python-cinp
