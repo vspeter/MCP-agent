@@ -48,10 +48,10 @@ ifeq (trusty, $(DISTRO_NAME))
 endif
 
 dpkg-distros:
-	echo ubuntu-xenial
+	echo ubuntu-trusty ubuntu-xenial ubuntu-bionic
 
 dpkg-requires:
-	echo dpkg-dev debhelper python3-support
+	echo dpkg-dev debhelper python3-dev python3-setuptools
 
 dpkg-setup:
 	./debian-setup
@@ -65,7 +65,7 @@ dpkg-file:
 	echo $(shell ls ../nullunit_*.deb)
 
 rpm-distros:
-	echo centos6
+	#echo centos6
 
 rpm-requires:
 	echo rpm-build
