@@ -72,7 +72,7 @@ dpkg-file:
 	echo $(shell ls ../nullunit_*.deb)
 
 rpm-distros:
-	#echo centos6
+	echo centos6
 
 rpm-requires:
 	echo rpm-build
