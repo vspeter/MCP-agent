@@ -1,3 +1,9 @@
+nullunit (0.22-2) DIST; urgency=medium
+
+  * Packaging tweeks
+
+ -- Peter <peter@xps15>  Thu, 12 Jul 2018 12:21:41 -0600
+
 nullunit (0.22-1) DIST; urgency=medium
 
   * Ported to Python3

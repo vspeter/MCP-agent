@@ -21,12 +21,15 @@ clean:
 	$(RM) -fr build
 	$(RM) -f dpkg
 	$(RM) -f rpm
+	dh_clean
 
 full-clean: clean
 	$(RM) -fr debian
 	$(RM) -fr rpmbuild
 	$(RM) -f dpkg-setup
 	$(RM) -f rpm-setup
+
+.PHONY:: all install clean full-clean
 
 test-distros:
 	echo ubuntu-xenial
@@ -65,7 +68,7 @@ dpkg-file:
 	echo $(shell ls ../nullunit_*.deb)
 
 rpm-distros:
-	#echo centos6
+	echo centos-6
 
 rpm-requires:
 	echo rpm-build
@@ -81,4 +84,4 @@ rpm:
 rpm-file:
 	echo $(shell ls rpmbuild/RPMS/*/nullunit-*.rpm)
 
-.PHONY: all clean full-clean test-distros test-requires test lint-requires lint dpkg-distros dpkg-requires dpkg-file rpm-distros rpm-requires rpm-file
+.PHONY:: test-distros test-requires test lint-requires lint dpkg-distros dpkg-requires dpkg-file rpm-distros rpm-requires rpm-file
