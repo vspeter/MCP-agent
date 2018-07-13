@@ -168,15 +168,15 @@ def doRequires( state, mcp, config ):
   args = []
   args.append( 'NULLUNIT=1' )
 
-  env = os.environ
-  env[ 'DEBIAN_PRIORITY' ] = 'critical'
-  env[ 'DEBIAN_FRONTEND' ] = 'noninteractive'
+  extra_env = {}
+  extra_env[ 'DEBIAN_PRIORITY' ] = 'critical'
+  extra_env[ 'DEBIAN_FRONTEND' ] = 'noninteractive'
 
   if not _isPackageLintTestBuild( state ):
     values = {}
     args.append( 'RESOURCE_NAME="{0}"'.format( config.get( 'mcp', 'resource_name' ) ) )
     args.append( 'RESOURCE_INDEX={0}'.format( config.get( 'mcp', 'resource_index' ) ) )
-    item_list = _makeAndGetValues( mcp, state, '{0}-config'.format( state[ 'target' ] ), args, env )
+    item_list = _makeAndGetValues( mcp, state, '{0}-config'.format( state[ 'target' ] ), args, extra_env )
     if item_list is None:
       return False
 
@@ -191,7 +191,7 @@ def doRequires( state, mcp, config ):
       if not mcp.setConfigValues( values, config.get( 'mcp', 'resource_name' ), config.get( 'mcp', 'resource_index' ), 1 ):
         raise Exception( 'iterate: Error Setting Configuration Vaules' )
 
-  required_list = _makeAndGetValues( mcp, state, '{0}-requires'.format( state[ 'target' ] ), args, env )
+  required_list = _makeAndGetValues( mcp, state, '{0}-requires'.format( state[ 'target' ] ), args, extra_env )
   if required_list is None:
     return False
 

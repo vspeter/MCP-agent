@@ -11,7 +11,8 @@ from logging.handlers import SysLogHandler
 
 from nullunit.common import getConfig, getMCP
 from nullunit.iterate import readState, writeState, doStep
-from nullunit.procutils import open_output, close_output
+from nullunit.procutils import open_output, close_output, set_proxy_env
+
 
 PID_FILE = '/var/run/nullunitIterate.pid'
 STATE_FILE = '/var/lib/mcp/nullunitIterate.state'
@@ -62,6 +63,8 @@ if not config:
   os.unlink( PID_FILE )
   logging.shutdown()
   sys.exit( 1 )
+
+set_proxy_env( config.get( 'misc', 'proxy_env_var' ) )
 
 if not config.get( 'mcp', 'job_id' ):
   os.system( 'config-curator -c nullunit -g' )

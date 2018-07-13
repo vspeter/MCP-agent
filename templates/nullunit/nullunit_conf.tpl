@@ -11,6 +11,9 @@ instance_cookie: {{ mcp_instance_cookie }}
 resource_name: {{ mcp_resource_name }}
 resource_index: {{ mcp_resource_index }}
 
+[misc]
+proxy_env_var: {{ mcp_proxy_env_var }}
+
 [git]
 url: {{ mcp_git_url }}
 branch: {{ mcp_git_branch }}
