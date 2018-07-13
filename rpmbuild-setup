@@ -2,7 +2,7 @@
 set -e
 set -x
 
-DISTRO_RELEASE="el$(lsb_release -sr | awk -F "." '{ print $1 }')_1"
+DISTRO_RELEASE="el$( lsb_release -sr | awk -F "." '{ print $1 }' )_1"
 
 DEB_RELEASE="$( head debian-common/changelog -n1 | sed 's/.*(\([^)]*\)).*/\1/' )"
 RELEASE="$( echo "$DEB_RELEASE" | cut -d '-' -f2 )"
@@ -27,7 +27,7 @@ Summary:        MCP Agent
 Version:        $VERSION
 Release:        $RELEASE.$DISTRO_RELEASE
 License:        Nonfree
-Group:          nonfree/rubicon
+Group:          multiverse/python
 Requires:       python3, python3-cinp, /usr/sbin/crond, git, make, config-curator, redhat-lsb-core
 BuildArch:      noarch
 
