@@ -43,8 +43,8 @@ def _makeDidNothing( results ):
   return False
 
 
-def _makeAndGetValues( mcp, state, target, args, env ):
-  ( item_list, rc ) = execute_lines_rc( '{0} -s {1} {2}'.format( MAKE_CMD, target, ' '.join( args ) ), state[ 'dir' ], env=env )
+def _makeAndGetValues( mcp, state, target, args, extra_env ):
+  ( item_list, rc ) = execute_lines_rc( '{0} -s {1} {2}'.format( MAKE_CMD, target, ' '.join( args ) ), state[ 'dir' ], extra_env=extra_env )
 
   if rc != 0:
     if rc == 2 and _makeDidNothing( item_list ):
