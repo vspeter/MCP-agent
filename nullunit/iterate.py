@@ -158,8 +158,8 @@ def doCheckout( state ):
   try:
     execute( '{0} checkout {1}'.format( GIT_CMD, state[ 'branch' ] ), state[ 'dir' ] )
   except ExecutionException as e:
-    logging.error( 'ExecutionException "{0}" while cloning' )
-    raise Exception( 'Exception "{0}" while cloning' )
+    logging.error( 'ExecutionException "{0}" while cloning'.format( e ) )
+    raise Exception( 'Exception "{0}" while cloning'.format( e ) )
 
   tmp = int( time.time() ) - ( 3600 * 24 )  # hopfully nothing is clock skewed more than this
   times = ( tmp, tmp )
@@ -216,8 +216,8 @@ def doRequires( state, mcp, config ):
     try:
       execute( PKG_INSTALL.format( required ) )
     except ExecutionException as e:
-      logging.error( 'ExecutionException "{0}" while installing required packages' )
-      raise Exception( 'Exception "{0}" while installing required packages' )
+      logging.error( 'ExecutionException "{0}" while installing required packages'.format( e ) )
+      raise Exception( 'Exception "{0}" while installing required packages'.format( e ) )
 
   return True
 

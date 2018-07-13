@@ -41,14 +41,10 @@ test:
 	cd tests && py.test-3 -x iterate.py
 
 lint-requires:
-ifeq (trusty, $(DISTRO_NAME))
-	echo linter
-endif
+	echo flake8
 
 lint:
-ifeq (trusty, $(DISTRO_NAME))
-	linter
-endif
+	flake8 --ignore=E501,E201,E202,E111,E126,E114,E402,W605 --statistics .
 
 dpkg-distros:
 	echo ubuntu-trusty ubuntu-xenial ubuntu-bionic
