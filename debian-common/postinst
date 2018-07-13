@@ -26,7 +26,7 @@ case "$1" in
     configure)
         /usr/sbin/config-curator -c nullunit
 
-        systemctl reload cron
+        systemctl restart cron
 
         mkdir -p /var/lib/mcp
     ;;

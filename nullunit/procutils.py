@@ -10,6 +10,10 @@ debug_stdout = None
 
 global_env = os.environ
 
+# don't get distracted from other proxy settings, we have our own thank you
+global_env[ 'http_proxy' ] = ''
+global_env[ 'https_proxy' ] = ''
+
 # TODO: would be nice to cmd output to debug log, and write to debug_stdout as it goes,
 #       unfontuntally that will require some pipes and magic, Popen expets a .fileno on the writer sent to it
 
@@ -29,17 +33,6 @@ def close_output():
   global debug_stdout
   debug_stdout.close()
   debug_stdout = None
-
-
-def set_proxy_env( proxy_server ):
-  global global_env
-
-  if not proxy_server:
-    global_env[ 'http_server' ] = ''
-    global_env[ 'https_server' ] = ''
-  else:
-    global_env[ 'http_server' ] = proxy_server
-    global_env[ 'https_server' ] = proxy_server
 
 
 def _execute( cmd, dir, stdin, extra_env ):

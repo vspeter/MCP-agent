@@ -17,6 +17,7 @@ proxy_env_var: {{ mcp_proxy_env_var }}
 [git]
 url: {{ mcp_git_url }}
 branch: {{ mcp_git_branch }}
+proxy: {{ mcp_git_proxy }}
 
 [make]
 target: {{ mcp_make_target }}

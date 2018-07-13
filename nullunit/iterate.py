@@ -94,7 +94,7 @@ def doStep( state, mcp, config ):
   logging.info( 'iterate: Executing Stage "{0}"'.format( start_state ) )
 
   if start_state == 'clone':
-    state[ 'dir' ] = doClone( state )
+    state[ 'dir' ] = doClone( state, config )
     state[ 'state' ] = 'checkout'
 
   elif start_state == 'checkout':
@@ -122,7 +122,7 @@ def doStep( state, mcp, config ):
   logging.info( 'iterate: Stage "{0}" Complete'.format( start_state ) )
 
 
-def doClone( state ):
+def doClone( state, config ):
   try:
     os.makedirs( WORK_DIR )
 
@@ -134,9 +134,18 @@ def doClone( state ):
     else:
       raise e
 
+  extra_env = {}
+  git_proxy = config.get( 'git', 'proxy' )
+  if not git_proxy:
+    extra_env[ 'http_proxy' ] = ''
+    extra_env[ 'https_proxy' ] = ''
+  else:
+    extra_env[ 'http_proxy' ] = git_proxy
+    extra_env[ 'https_proxy' ] = git_proxy
+
   logging.info( 'iterate: cloning "{0}"'.format( state[ 'url' ] ) )
   try:
-    execute( '{0} clone {1}'.format( GIT_CMD, state[ 'url' ] ), WORK_DIR )
+    execute( '{0} clone {1}'.format( GIT_CMD, state[ 'url' ] ), WORK_DIR, extra_env=extra_env )
   except ExecutionException as e:
     logging.error( 'ExecutionException "{0}" while cloning' )
     raise Exception( 'Exception "{0}" while cloning' )
@@ -149,8 +158,8 @@ def doCheckout( state ):
   try:
     execute( '{0} checkout {1}'.format( GIT_CMD, state[ 'branch' ] ), state[ 'dir' ] )
   except ExecutionException as e:
-    logging.error( 'ExecutionException "{0}" while cloning' )
-    raise Exception( 'Exception "{0}" while cloning' )
+    logging.error( 'ExecutionException "{0}" while cloning'.format( e ) )
+    raise Exception( 'Exception "{0}" while cloning'.format( e ) )
 
   tmp = int( time.time() ) - ( 3600 * 24 )  # hopfully nothing is clock skewed more than this
   times = ( tmp, tmp )
@@ -207,8 +216,8 @@ def doRequires( state, mcp, config ):
     try:
       execute( PKG_INSTALL.format( required ) )
     except ExecutionException as e:
-      logging.error( 'ExecutionException "{0}" while installing required packages' )
-      raise Exception( 'Exception "{0}" while installing required packages' )
+      logging.error( 'ExecutionException "{0}" while installing required packages'.format( e ) )
+      raise Exception( 'Exception "{0}" while installing required packages'.format( e ) )
 
   return True
 
@@ -217,13 +226,22 @@ def doTarget( state, mcp, config ):  # we allways setResults and setScore to cle
   args = []
   args.append( 'NULLUNIT=1' )
 
+  extra_env = {}
+  proxy = config.get( 'misc', 'proxy_env_var' )
+  if not proxy:
+    extra_env[ 'http_proxy' ] = ''
+    extra_env[ 'https_proxy' ] = ''
+  else:
+    extra_env[ 'http_proxy' ] = proxy
+    extra_env[ 'https_proxy' ] = proxy
+
   if _isPackageBuild( state ):
     packrat = getPackrat( config )
     if not packrat:
       raise Exception( 'iterate: Error Connecting to packrat' )
 
     logging.info( 'iterate: executing clean' )
-    ( results, rc ) = execute_lines_rc( '{0} clean'.format( MAKE_CMD ), state[ 'dir' ] )
+    ( results, rc ) = execute_lines_rc( '{0} clean'.format( MAKE_CMD ), state[ 'dir' ], extra_env=extra_env )
     if rc != 0:
       if rc == 2 and not _makeDidNothing( results ):
         mcp.setResults( 'Error with clean\n' + '\n'.join( results ) )
@@ -234,14 +252,14 @@ def doTarget( state, mcp, config ):  # we allways setResults and setScore to cle
     args.append( 'RESOURCE_INDEX={0}'.format( config.get( 'mcp', 'resource_index' ) ) )
 
   logging.info( 'iterate: executing setup "{0}"'.format( state[ 'target' ] ) )
-  ( results, rc ) = execute_lines_rc( '{0} {1}-setup {2}'.format( MAKE_CMD, state[ 'target' ], ' '.join( args ) ), state[ 'dir' ] )
+  ( results, rc ) = execute_lines_rc( '{0} {1}-setup {2}'.format( MAKE_CMD, state[ 'target' ], ' '.join( args ) ), state[ 'dir' ], extra_env=extra_env )
   if rc != 0:
     if rc == 2 and not _makeDidNothing( results ):
       mcp.setResults( ( 'Error with {0}-setup\n'.format( state[ 'target' ] ) ) + '\n'.join( results ) )
       return False
 
   logging.info( 'iterate: executing target "{0}"'.format( state[ 'target' ] ) )
-  ( target_results, rc ) = execute_lines_rc( '{0} {1} {2}'.format( MAKE_CMD, state[ 'target' ], ' '.join( args ) ), state[ 'dir' ] )
+  ( target_results, rc ) = execute_lines_rc( '{0} {1} {2}'.format( MAKE_CMD, state[ 'target' ], ' '.join( args ) ), state[ 'dir' ], extra_env=extra_env )
   if rc != 0:
     if rc == 2 and _makeDidNothing( target_results ):
       mcp.setResults( None )
