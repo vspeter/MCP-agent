@@ -21,7 +21,7 @@ clean:
 	$(RM) -fr build
 	$(RM) -f dpkg
 	$(RM) -f rpm
-	dh_clean
+	dh_clean || true
 
 full-clean: clean
 	$(RM) -fr debian
@@ -68,7 +68,7 @@ dpkg-file:
 	echo $(shell ls ../nullunit_*.deb)
 
 rpm-distros:
-	echo centos-6
+	# echo centos-6
 
 rpm-requires:
 	echo rpm-build

@@ -31,7 +31,18 @@ def close_output():
   debug_stdout = None
 
 
-def _execute( cmd, dir, stdin, env ):
+def set_proxy_env( proxy_server ):
+  global global_env
+
+  if not proxy_server:
+    global_env[ 'http_server' ] = ''
+    global_env[ 'https_server' ] = ''
+  else:
+    global_env[ 'http_server' ] = proxy_server
+    global_env[ 'https_server' ] = proxy_server
+
+
+def _execute( cmd, dir, stdin, extra_env ):
   logging.info( 'procutils: executing "{0}" in "{1}"'.format( cmd, dir ) )
   debug_stdout.write( '\n=================================================\n' )
   debug_stdout.write( '{0}\n'.format( datetime.utcnow() ) )
@@ -44,6 +55,10 @@ def _execute( cmd, dir, stdin, env ):
 
   debug_stdout.write( '\n-------------------------------------------------\n' )
   debug_stdout.flush()
+
+  env = global_env.copy()
+  if extra_env is not None:
+    env.update( extra_env )
 
   args = {
             'args': shlex.split( cmd ),
@@ -79,19 +94,19 @@ def _execute( cmd, dir, stdin, env ):
   return ( printable.sub( '', stdout )[ -100000: ], proc.returncode )
 
 
-def execute( cmd, dir=None, stdin=None, env=global_env ):
-  ( _, rc ) = _execute( cmd, dir, stdin, env )
+def execute( cmd, dir=None, stdin=None, extra_env=None ):
+  ( _, rc ) = _execute( cmd, dir, stdin, extra_env )
   if rc != 0:
     raise ExecutionException( 'Error Executing "{0}", rc: {1}'.format( cmd, rc ) )
 
 
-def execute_lines_rc( cmd, dir=None, stdin=None, env=global_env ):
-  ( results, rc ) = _execute( cmd, dir, stdin, env )
+def execute_lines_rc( cmd, dir=None, stdin=None, extra_env=None ):
+  ( results, rc ) = _execute( cmd, dir, stdin, extra_env )
   return ( results.splitlines(), rc )
 
 
-def execute_lines( cmd, dir=None, stdin=None, env=global_env ):
-  ( results, rc ) = _execute( cmd, dir, stdin, env )
+def execute_lines( cmd, dir=None, stdin=None, extra_env=None ):
+  ( results, rc ) = _execute( cmd, dir, stdin, extra_env )
   if rc != 0:
     raise ExecutionException( 'Error Executing "{0}", rc: {1}'.format( cmd, rc ) )
 
