@@ -12,12 +12,12 @@ install:
 	install -m 755 bin/nullunitIterate $(DESTDIR)/usr/bin
 	install -m 755 bin/nullunitInterface $(DESTDIR)/usr/bin
 	install -m 755 bin/nullunitAddPackageFile $(DESTDIR)/usr/bin
-	install -m 644 templates/nullunit/* $(DESTDIR)/var/lib/config-curator/templates/nullunit/
+	install -m 644 templates/nullunit/* $(DESTDIR)/var/lib/config-curator/templates/nullunit
 
-ifeq ($DISTRO, 'ubuntu' )
+ifeq (ubuntu, $(DISTRO))
 	./setup.py install --root $(DESTDIR) --install-purelib=/usr/lib/python3/dist-packages/ --prefix=/usr --no-compile -O0
 else
-  ./setup.py install --root $(DESTDIR) --prefix=/usr --no-compile -O0
+	./setup.py install --root $(DESTDIR) --prefix=/usr --no-compile -O0
 endif
 
 clean:
@@ -25,7 +25,7 @@ clean:
 	$(RM) -fr build
 	$(RM) -f dpkg
 	$(RM) -f rpm
-ifeq ($DISTRO, 'ubuntu' )
+ifeq (ubuntu, $(DISTRO))
 	dh_clean || true
 endif
 

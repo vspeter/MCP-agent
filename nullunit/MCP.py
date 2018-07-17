@@ -1,7 +1,7 @@
 import logging
 
 from cinp import client
-
+# TODO: add retry in case of communication failure
 
 class MCP( object ):
   def __init__( self, host, proxy, instance_id, cookie ):

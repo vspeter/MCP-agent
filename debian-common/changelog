@@ -1,3 +1,10 @@
+nullunit (0.24-1) DIST; urgency=medium
+
+  * Packaging updates
+  * renamed docs to doc
+
+ -- Peter <peter@xps15>  Mon, 16 Jul 2018 23:20:38 -0600
+
 nullunit (0.23-3) DIST; urgency=medium
 
   * http(s)_proxy env vars
