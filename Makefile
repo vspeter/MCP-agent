@@ -12,27 +12,39 @@ install:
 	install -m 755 bin/nullunitIterate $(DESTDIR)/usr/bin
 	install -m 755 bin/nullunitInterface $(DESTDIR)/usr/bin
 	install -m 755 bin/nullunitAddPackageFile $(DESTDIR)/usr/bin
-	install -m 644 templates/nullunit/* $(DESTDIR)/var/lib/config-curator/templates/nullunit/
+	install -m 644 templates/nullunit/* $(DESTDIR)/var/lib/config-curator/templates/nullunit
 
+ifeq (ubuntu, $(DISTRO))
 	./setup.py install --root $(DESTDIR) --install-purelib=/usr/lib/python3/dist-packages/ --prefix=/usr --no-compile -O0
+else
+	./setup.py install --root $(DESTDIR) --prefix=/usr --no-compile -O0
+endif
 
 clean:
 	./setup.py clean
 	$(RM) -fr build
 	$(RM) -f dpkg
 	$(RM) -f rpm
+ifeq (ubuntu, $(DISTRO))
 	dh_clean || true
+endif
 
-full-clean: clean
+dist-clean: clean
 	$(RM) -fr debian
 	$(RM) -fr rpmbuild
 	$(RM) -f dpkg-setup
 	$(RM) -f rpm-setup
 
-.PHONY:: all install clean full-clean
+.PHONY:: all install clean dist-clean
 
 test-distros:
 	echo ubuntu-xenial
+
+lint-requires:
+	echo flake8
+
+lint:
+	flake8 --ignore=E501,E201,E202,E111,E126,E114,E402,W605 --statistics .
 
 test-requires:
 	echo python3-cinp python3-pytest
@@ -40,11 +52,7 @@ test-requires:
 test:
 	cd tests && py.test-3 -x iterate.py
 
-lint-requires:
-	echo flake8
-
-lint:
-	flake8 --ignore=E501,E201,E202,E111,E126,E114,E402,W605 --statistics .
+.PHONY:: test-distros lint-requires lint test-requires test
 
 dpkg-distros:
 	echo ubuntu-trusty ubuntu-xenial ubuntu-bionic
@@ -63,8 +71,10 @@ dpkg:
 dpkg-file:
 	echo $(shell ls ../nullunit_*.deb)
 
+.PHONY:: dpkg-distros dpkg-requires dpkg-file
+
 rpm-distros:
-	# echo centos-6
+	echo centos-6
 
 rpm-requires:
 	echo rpm-build
@@ -80,4 +90,4 @@ rpm:
 rpm-file:
 	echo $(shell ls rpmbuild/RPMS/*/nullunit-*.rpm)
 
-.PHONY:: test-distros test-requires test lint-requires lint dpkg-distros dpkg-requires dpkg-file rpm-distros rpm-requires rpm-file
+.PHONY:: rpm-distros rpm-requires rpm-file

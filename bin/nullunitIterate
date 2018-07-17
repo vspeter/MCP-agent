@@ -107,7 +107,7 @@ if state is None:
 counter = 0
 while cont:
   if state[ 'state' ] in ( 'done', 'failed' ):
-    if config.get( 'make', 'target' ) in ( 'lint', 'test', 'dpkg', 'respkg', 'rpm', 'resource', 'docs' ):
+    if config.get( 'make', 'target' ) in ( 'lint', 'test', 'dpkg', 'respkg', 'rpm', 'resource', 'doc' ):
       logging.info( 'Signaling Job Ran' )
       mcp.signalJobRan()
 

@@ -72,7 +72,7 @@ def _isPackageBuild( state ):
 
 
 def _isPackageLintTestBuild( state ):
-  return state[ 'target' ] in ( 'test', 'lint', 'dpkg', 'rpm', 'respkg', 'resource', 'docs' )
+  return state[ 'target' ] in ( 'test', 'lint', 'dpkg', 'rpm', 'respkg', 'resource', 'doc' )
 
 
 def readState( file ):
@@ -286,8 +286,8 @@ def doTarget( state, mcp, config ):  # we allways setResults and setScore to cle
   else:
     mcp.setScore( None )
 
-  # if docs, upload to confluence
-  if state == 'docs':
+  # if doc, upload to confluence
+  if state == 'doc':
     if rc != 0 or len( results ) == 0:
       mcp.setResults( ( 'Error getting {0}-file\n'.format( state[ 'target' ] ) ) + '\n'.join( results ) )
       return False
