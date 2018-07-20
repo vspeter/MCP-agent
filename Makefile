@@ -50,7 +50,7 @@ test-requires:
 	echo python3-cinp python3-pytest
 
 test:
-	cd tests && py.test-3 -x iterate.py
+	py.test-3 nullunit --cov=nullunit --cov-report html --cov-report term
 
 .PHONY:: test-distros lint-requires lint test-requires test
 

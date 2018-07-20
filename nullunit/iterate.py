@@ -10,12 +10,11 @@ from datetime import datetime
 from nullunit.common import getPackrat
 from nullunit.confluence import uploadToConfluence
 from nullunit.procutils import execute, execute_lines_rc, ExecutionException
+from nullunit.scoring import extractScore
 
 GIT_CMD = '/usr/bin/git'
 MAKE_CMD = '/usr/bin/make'
 WORK_DIR = '/nullunit/src'  # if the dir is a ends in src, it will make go and it's GOPATH happy
-
-SCORE_RE = re.compile( '^==-- SCORE: ([0-9])? --==$' )
 
 # make sure something like "make: *** No rule to make target `XXXX', needed by `XXXX'.  Stop." still fails
 DIDNOTHING_RE_LIST = [ re.compile( '^make(\[[0-9]+\])?: \*\*\* No rule to make .* Stop\.$' ), re.compile( '^make(\[[0-9]+\])?: Nothing to be done for .*\.$' ) ]
@@ -26,7 +25,7 @@ if os.path.exists( '/usr/bin/apt-get' ):
 
 elif os.path.exists( '/usr/bin/yum' ):
   PKG_UPDATE = '/usr/bin/yum clean all'
-  PKG_INSTALL = '/usr/bin/yum install -y {0}'
+  PKG_INSTALL = '/usr/bin/yum install -y {0} && /usr/bin/rpm --query {0}'
 
 else:
   raise Exception( 'can\'t detect package manager' )
@@ -47,7 +46,7 @@ def _makeAndGetValues( mcp, state, target, args, extra_env ):
   ( item_list, rc ) = execute_lines_rc( '{0} -s {1} {2}'.format( MAKE_CMD, target, ' '.join( args ) ), state[ 'dir' ], extra_env=extra_env )
 
   if rc != 0:
-    if rc == 2 and _makeDidNothing( item_list ):
+    if rc != 1 and _makeDidNothing( item_list ):
       return []
 
     else:
@@ -117,6 +116,9 @@ def doStep( state, mcp, config ):
     else:
       state[ 'state' ] = 'failed'
       mcp.setSuccess( False )
+
+  else:
+    raise Exception( 'Unknown state "{0}"'.format( start_state ) )
 
   mcp.sendStatus( 'Stage "{0}" Complete'.format( start_state ) )
   logging.info( 'iterate: Stage "{0}" Complete'.format( start_state ) )
@@ -243,7 +245,7 @@ def doTarget( state, mcp, config ):  # we allways setResults and setScore to cle
     logging.info( 'iterate: executing clean' )
     ( results, rc ) = execute_lines_rc( '{0} clean'.format( MAKE_CMD ), state[ 'dir' ], extra_env=extra_env )
     if rc != 0:
-      if rc == 2 and not _makeDidNothing( results ):
+      if rc != 1 and not _makeDidNothing( results ):
         mcp.setResults( 'Error with clean\n' + '\n'.join( results ) )
         return False
 
@@ -254,14 +256,14 @@ def doTarget( state, mcp, config ):  # we allways setResults and setScore to cle
   logging.info( 'iterate: executing setup "{0}"'.format( state[ 'target' ] ) )
   ( results, rc ) = execute_lines_rc( '{0} {1}-setup {2}'.format( MAKE_CMD, state[ 'target' ], ' '.join( args ) ), state[ 'dir' ], extra_env=extra_env )
   if rc != 0:
-    if rc == 2 and not _makeDidNothing( results ):
+    if rc != 1 and not _makeDidNothing( results ):
       mcp.setResults( ( 'Error with {0}-setup\n'.format( state[ 'target' ] ) ) + '\n'.join( results ) )
       return False
 
   logging.info( 'iterate: executing target "{0}"'.format( state[ 'target' ] ) )
   ( target_results, rc ) = execute_lines_rc( '{0} {1} {2}'.format( MAKE_CMD, state[ 'target' ], ' '.join( args ) ), state[ 'dir' ], extra_env=extra_env )
   if rc != 0:
-    if rc == 2 and _makeDidNothing( target_results ):
+    if rc != 1 and _makeDidNothing( target_results ):
       mcp.setResults( None )
       return True
 
@@ -275,16 +277,7 @@ def doTarget( state, mcp, config ):  # we allways setResults and setScore to cle
   else:
     mcp.setResults( '\n'.join( target_results ) )
 
-  score_list = []
-  for line in target_results:
-    match = SCORE_RE.search( line )
-    if match:
-      score_list.append( match.group( 1 ) )
-
-  if len( score_list ) > 0:
-    mcp.setScore( sum( score_list ) / len( score_list ) )
-  else:
-    mcp.setScore( None )
+  mcp.setScore( extractScore( target_results ) )
 
   # if doc, upload to confluence
   if state == 'doc':

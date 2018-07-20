@@ -48,7 +48,7 @@ cp debian-common/cron.d %{buildroot}/etc/cron.d/nullunit
 %post
 /usr/sbin/config-curator -c nullunit
 
-/etc/init.d/cron reload || true
+/etc/init.d/crond reload || true
 
 mkdir -p /var/lib/mcp
 

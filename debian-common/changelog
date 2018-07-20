@@ -1,3 +1,9 @@
+nullunit (0.25-1) DIST; urgency=medium
+
+  * Test score extraction
+
+ -- Peter <peter@xps15>  Fri, 20 Jul 2018 12:42:18 -0600
+
 nullunit (0.24-1) DIST; urgency=medium
 
   * Packaging updates

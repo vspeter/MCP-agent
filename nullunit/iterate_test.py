@@ -1,3 +1,5 @@
+import pytest
+
 from nullunit import iterate
 
 
@@ -26,10 +28,3 @@ def test_makedidnothing():
 
   for item in should_be_false:
     assert iterate._makeDidNothing( item ) is False
-
-
-if __name__ == '__main__':
-  print( 'best when executed like: py.test -x {0}'.format( __file__ ) )
-  for i in dir():
-    if i.startswith( 'test_' ):
-      globals()[i]()
