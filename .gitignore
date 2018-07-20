@@ -3,3 +3,5 @@ build
 debian
 .cache
 dpkg
+.coverage
+htmlcov
