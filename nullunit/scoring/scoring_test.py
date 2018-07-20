@@ -1,4 +1,4 @@
-import pytest
+# import pytest
 
 from nullunit.scoring import extractScore
 from nullunit.scoring.golang import extract_scores as golang_extract

@@ -1,7 +1,30 @@
 import logging
+import time
+import random
+import math
 
 from cinp import client
-# TODO: add retry in case of communication failure
+
+PROCESSOR_API_VERSION = '0.1'
+
+# TODO: move backoff delay and retries to cinp client
+DELAY_MULTIPLIER = 15
+# delay of 15 results in a delay of:
+# min delay = 0, 10, 16, 20, 24, 26, 29, 31, 32, 34, 35, 37, 38, 39, 40 ....
+# max delay = 0, 20, 32, 40, 48, 52, 58, 62, 64, 68, 70, 74, 76, 78, 80 .....
+
+
+def _backOffDelay( count ):
+  if count < 1:  # math.log dosen't do so well below 1
+    count = 1
+
+  if count > 20:  # really don't need to get any more delaied than this
+    count = 20
+
+  factor = int( DELAY_MULTIPLIER * math.log( count ) )
+  delay = factor + ( random.random() * factor )
+  logging.debug( 'MCP: sleeping for "{0}"'.format( delay ) )
+  time.sleep( delay )
 
 
 class MCP( object ):
@@ -9,6 +32,19 @@ class MCP( object ):
     self.cinp = client.CInP( host, '/api/v1/', proxy )
     self.instance_id = instance_id
     self.cookie = cookie
+
+    count = 0
+    while True:
+      count += 1
+      try:
+        root = self.cinp.describe( '/api/v1/Processor' )
+        break
+      except ( client.Timeout, client.ResponseError ):
+        _backOffDelay( count )
+        logging.warn( 'MCP: getRequest: retry {0}'.format( count ) )
+
+    if root[ 'api-version' ] != PROCESSOR_API_VERSION:
+      raise Exception( 'Expected API version "{0}" found "{1}"'.format( PROCESSOR_API_VERSION, root[ 'api-version' ] ) )
 
   def signalJobRan( self ):
     logging.info( 'MCP: Signal Job Ran' )

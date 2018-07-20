@@ -47,7 +47,7 @@ lint:
 	flake8 --ignore=E501,E201,E202,E111,E126,E114,E402,W605 --statistics .
 
 test-requires:
-	echo python3-cinp python3-pytest
+	echo python3-cinp python3-pytest python3-pytest-cov
 
 test:
 	py.test-3 nullunit --cov=nullunit --cov-report html --cov-report term
