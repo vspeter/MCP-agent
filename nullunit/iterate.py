@@ -16,19 +16,15 @@ GIT_CMD = '/usr/bin/git'
 MAKE_CMD = '/usr/bin/make'
 WORK_DIR = '/nullunit/src'  # if the dir is a ends in src, it will make go and it's GOPATH happy
 
+if os.path.exists( '/usr/bin/apt-get' ):
+  PACKAGE_MANAGER = 'apt'
+elif os.path.exists( '/usr/bin/yum' ):
+  PACKAGE_MANAGER = 'yum'
+else:
+  raise Exception( 'Unable to detect package manager' )
+
 # make sure something like "make: *** No rule to make target `XXXX', needed by `XXXX'.  Stop." still fails
 DIDNOTHING_RE_LIST = [ re.compile( '^make(\[[0-9]+\])?: \*\*\* No rule to make .* Stop\.$' ), re.compile( '^make(\[[0-9]+\])?: Nothing to be done for .*\.$' ) ]
-
-if os.path.exists( '/usr/bin/apt-get' ):
-  PKG_UPDATE = '/usr/bin/apt-get update'
-  PKG_INSTALL = '/usr/bin/apt-get install -y {0}'
-
-elif os.path.exists( '/usr/bin/yum' ):
-  PKG_UPDATE = '/usr/bin/yum clean all'
-  PKG_INSTALL = '/usr/bin/yum install -y {0} && /usr/bin/rpm --query {0}'
-
-else:
-  raise Exception( 'can\'t detect package manager' )
 
 
 def _makeDidNothing( results ):
@@ -208,7 +204,13 @@ def doRequires( state, mcp, config ):
 
   logging.info( 'iterate: updating pkg metadata' )
   try:
-    execute( PKG_UPDATE )
+    if PACKAGE_MANAGER == 'apt':
+      execute( '/usr/bin/apt-get update' )
+    elif PACKAGE_MANAGER == 'yum':
+      execute( '/usr/bin/yum clean all' )
+    else:
+      raise Exception( 'Unknown Package manager "{0}"'.format( PACKAGE_MANAGER ) )
+
   except ExecutionException as e:
     logging.error( 'ExecutionException "{0}" while updating packaging info for required packages' )
     raise Exception( 'Exception "{0}" while updating packaging info for required packages' )
@@ -216,7 +218,14 @@ def doRequires( state, mcp, config ):
   for required in required_list:
     logging.info( 'iterate: installing "{0}"'.format( required ) )
     try:
-      execute( PKG_INSTALL.format( required ) )
+      if PACKAGE_MANAGER == 'apt':
+        execute( '/usr/bin/apt-get install -y {0}'.format( required ) )
+      elif PACKAGE_MANAGER == 'yum':
+        execute( '/usr/bin/yum install -y {0}'.format( required ) )
+        execute( '/usr/bin/rpm --query {0}'.format( required ) )
+      else:
+        raise Exception( 'Unknown Package manager "{0}"'.format( PACKAGE_MANAGER ) )
+
     except ExecutionException as e:
       logging.error( 'ExecutionException "{0}" while installing required packages'.format( e ) )
       raise Exception( 'Exception "{0}" while installing required packages'.format( e ) )

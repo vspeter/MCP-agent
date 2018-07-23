@@ -68,7 +68,7 @@ class MCP( object ):
 
   def setScore( self, score ):
     if score is not None:
-      logging.info( 'MCP: Score "{0}"'.format(* score ) )
+      logging.info( 'MCP: Score "{0}"'.format( score ) )
     else:
       logging.info( 'MCP: Score <undefined>' )
 

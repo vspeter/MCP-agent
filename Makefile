@@ -77,7 +77,7 @@ rpm-distros:
 	echo centos-6
 
 rpm-requires:
-	echo rpm-build
+	echo rpm-build python34-setuptools
 
 rpm-setup:
 	./rpmbuild-setup
