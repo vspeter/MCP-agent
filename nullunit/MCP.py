@@ -58,21 +58,21 @@ class MCP( object ):
     logging.info( 'MCP: Success "{0}"'.format( success ) )
     self.cinp.call( '/api/v1/Processor/Instance:{0}:(setSuccess)'.format( self.instance_id ), { 'cookie': self.cookie, 'success': success } )
 
-  def setResults( self, results ):
+  def setResults( self, target, results ):
     if results is not None:
       logging.info( 'MCP: Results "{0}"'.format( results[ -100: ].strip() ) )
     else:
       logging.info( 'MCP: Results <empty>' )
 
-    self.cinp.call( '/api/v1/Processor/Instance:{0}:(setResults)'.format( self.instance_id ), { 'cookie': self.cookie, 'results': results } )
+    self.cinp.call( '/api/v1/Processor/Instance:{0}:(setResults)'.format( self.instance_id ), { 'cookie': self.cookie, 'target': target, 'results': results } )
 
-  def setScore( self, score ):
+  def setScore( self, target, score ):
     if score is not None:
       logging.info( 'MCP: Score "{0}"'.format( score ) )
     else:
       logging.info( 'MCP: Score <undefined>' )
 
-    self.cinp.call( '/api/v1/Processor/Instance:{0}:(setScore)'.format( self.instance_id ), { 'cookie': self.cookie, 'score': score } )
+    self.cinp.call( '/api/v1/Processor/Instance:{0}:(setScore)'.format( self.instance_id ), { 'cookie': self.cookie, 'target': target, 'score': score } )
 
   def uploadedPackages( self, package_files ):
     if not package_files:

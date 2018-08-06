@@ -1,10 +1,54 @@
 import configparser
 import logging
+import re
+import os
 
 from nullunit.MCP import MCP
 from nullunit.Packrat import Packrat
+from nullunit.procutils import execute_lines_rc
+
 
 CONFIG_FILE = '/etc/mcp/nullunit.conf'
+MAKE_CMD = '/usr/bin/make'
+GIT_CMD = '/usr/bin/git'
+WORK_DIR = '/nullunit/src'  # if the dir is a ends in src, it will make go and it's GOPATH happy
+
+if os.path.exists( '/usr/bin/apt-get' ):
+  PACKAGE_MANAGER = 'apt'
+elif os.path.exists( '/usr/bin/yum' ):
+  PACKAGE_MANAGER = 'yum'
+else:
+  raise Exception( 'Unable to detect package manager' )
+
+# make sure something like "make: *** No rule to make target `XXXX', needed by `XXXX'.  Stop." still fails
+DIDNOTHING_RE_LIST = [ re.compile( '^make(\[[0-9]+\])?: \*\*\* No rule to make .* Stop\.$' ), re.compile( '^make(\[[0-9]+\])?: Nothing to be done for .*\.$' ) ]
+
+
+def makeDidNothing( results ):
+  if len( results ) != 1:
+    return False
+
+  for item in DIDNOTHING_RE_LIST:
+    if item.search( results[0] ):
+      return True
+
+  return False
+
+
+class MakeException( Exception ):
+  pass
+
+
+def runMake( cmd, dir, extra_env=None ):
+  ( results, rc ) = execute_lines_rc( '{0} {1}'.format( MAKE_CMD, cmd ), dir, extra_env=extra_env )
+
+  if rc == 0:
+    return results
+
+  if rc == 2 and makeDidNothing( results ):
+    return []
+
+  raise MakeException( 'Error running make with "{0}", rc: "{1}"'.format( cmd, rc ) + '\n'.join( results ) )
 
 
 def getConfig():

@@ -3,56 +3,23 @@ import os
 import glob
 import shutil
 import logging
-import socket
-import re
 import time
-from datetime import datetime
-from nullunit.common import getPackrat
-from nullunit.confluence import uploadToConfluence
-from nullunit.procutils import execute, execute_lines_rc, ExecutionException
-from nullunit.scoring import extractScore
-
-GIT_CMD = '/usr/bin/git'
-MAKE_CMD = '/usr/bin/make'
-WORK_DIR = '/nullunit/src'  # if the dir is a ends in src, it will make go and it's GOPATH happy
-
-if os.path.exists( '/usr/bin/apt-get' ):
-  PACKAGE_MANAGER = 'apt'
-elif os.path.exists( '/usr/bin/yum' ):
-  PACKAGE_MANAGER = 'yum'
-else:
-  raise Exception( 'Unable to detect package manager' )
-
-# make sure something like "make: *** No rule to make target `XXXX', needed by `XXXX'.  Stop." still fails
-DIDNOTHING_RE_LIST = [ re.compile( '^make(\[[0-9]+\])?: \*\*\* No rule to make .* Stop\.$' ), re.compile( '^make(\[[0-9]+\])?: Nothing to be done for .*\.$' ) ]
-
-
-def _makeDidNothing( results ):
-  if len( results ) != 1:
-    return False
-
-  for item in DIDNOTHING_RE_LIST:
-    if item.search( results[0] ):
-      return True
-
-  return False
+from nullunit.common import GIT_CMD, WORK_DIR, PACKAGE_MANAGER, getPackrat, runMake, MakeException
+from nullunit.procutils import execute, ExecutionException
+from nullunit.targets import testTarget, buildTarget, docTarget, otherTarget
 
 
 def _makeAndGetValues( mcp, state, target, args, extra_env ):
-  ( item_list, rc ) = execute_lines_rc( '{0} -s {1} {2}'.format( MAKE_CMD, target, ' '.join( args ) ), state[ 'dir' ], extra_env=extra_env )
-
-  if rc != 0:
-    if rc != 1 and _makeDidNothing( item_list ):
-      return []
-
-    else:
-      logging.info( 'iterate: error getting requires' )
-      mcp.setResults( 'Error getting requires:\n' + '\n'.join( item_list ) )
-      return None
+  try:
+    item_list = runMake( '-s {0} {1}'.format( target, ' '.join( args ) ), state[ 'dir' ], extra_env=extra_env )
+  except MakeException as e:
+    logging.warn( 'iterate: error getting requires' )
+    mcp.setResults( state[ 'target' ], 'Error getting requires: "{0}"'.format( e ) )
+    return None
 
   results = []
   for item in item_list:
-    if item.startswith( 'make:' ) or item.startswith( 'make[' ):  # make was unhappy about something, skip that line.... if it was important it will come out later
+    if item.startswith( 'make:' ) or item.startswith( 'make[' ):  # make was unhappy about something, skip that line.... if it was important, it will come out later
       continue
 
     item = item.strip()
@@ -62,12 +29,12 @@ def _makeAndGetValues( mcp, state, target, args, extra_env ):
   return results
 
 
-def _isPackageBuild( state ):
-  return state[ 'target' ] in ( 'dpkg', 'rpm', 'respkg', 'resource' )
+def _isPackageBuild( target ):
+  return target in ( 'dpkg', 'rpm', 'respkg', 'resource' )
 
 
-def _isPackageLintTestBuild( state ):
-  return state[ 'target' ] in ( 'test', 'lint', 'dpkg', 'rpm', 'respkg', 'resource', 'doc' )
+def _isPackageTestDoc( target ):
+  return _isPackageBuild( target ) or target in ( 'test', 'doc' )
 
 
 def readState( file ):
@@ -94,12 +61,18 @@ def doStep( state, mcp, config ):
 
   elif start_state == 'checkout':
     doCheckout( state )
-    state[ 'state' ] = 'requires'
+    state[ 'state' ] = 'clean'
+
+  elif start_state == 'clean':
+    if doClean( state, mcp ):
+      state[ 'state' ] = 'requires'
+    else:
+      state[ 'state' ] = 'failed'
+      mcp.setSuccess( False )
 
   elif start_state == 'requires':
     if doRequires( state, mcp, config ):
       state[ 'state' ] = 'target'
-
     else:
       state[ 'state' ] = 'failed'
       mcp.setSuccess( False )
@@ -108,7 +81,6 @@ def doStep( state, mcp, config ):
     if doTarget( state, mcp, config ):
       state[ 'state' ] = 'done'
       mcp.setSuccess( True )
-
     else:
       state[ 'state' ] = 'failed'
       mcp.setSuccess( False )
@@ -170,6 +142,19 @@ def doCheckout( state ):
         pass
 
 
+def doClean( state, mcp ):
+  logging.info( 'iterate: executing clean' )
+
+  try:
+    runMake( 'clean', state[ 'dir' ] )
+  except MakeException as e:
+    logging.warn( 'iterate: Error with clean' )
+    mcp.setResults( state[ 'target' ], 'Error with clean: "{0}"'.format( e ) )
+    return False
+
+  return True
+
+
 def doRequires( state, mcp, config ):
   logging.info( 'iterate: getting requires for "{0}"'.format( state[ 'target' ] ) )
   args = []
@@ -179,7 +164,7 @@ def doRequires( state, mcp, config ):
   extra_env[ 'DEBIAN_PRIORITY' ] = 'critical'
   extra_env[ 'DEBIAN_FRONTEND' ] = 'noninteractive'
 
-  if not _isPackageLintTestBuild( state ):
+  if not _isPackageTestDoc( state[ 'target' ] ):
     values = {}
     args.append( 'RESOURCE_NAME="{0}"'.format( config.get( 'mcp', 'resource_name' ) ) )
     args.append( 'RESOURCE_INDEX={0}'.format( config.get( 'mcp', 'resource_index' ) ) )
@@ -233,7 +218,7 @@ def doRequires( state, mcp, config ):
   return True
 
 
-def doTarget( state, mcp, config ):  # we allways setResults and setScore to clear out any previous run's results there might be
+def doTarget( state, mcp, config ):
   args = []
   args.append( 'NULLUNIT=1' )
 
@@ -246,124 +231,34 @@ def doTarget( state, mcp, config ):  # we allways setResults and setScore to cle
     extra_env[ 'http_proxy' ] = proxy
     extra_env[ 'https_proxy' ] = proxy
 
-  if _isPackageBuild( state ):
-    packrat = getPackrat( config )
-    if not packrat:
-      raise Exception( 'iterate: Error Connecting to packrat' )
-
-    logging.info( 'iterate: executing clean' )
-    ( results, rc ) = execute_lines_rc( '{0} clean'.format( MAKE_CMD ), state[ 'dir' ], extra_env=extra_env )
-    if rc != 0:
-      if rc != 1 and not _makeDidNothing( results ):
-        mcp.setResults( 'Error with clean\n' + '\n'.join( results ) )
-        return False
-
-  if not _isPackageLintTestBuild( state ):
+  if not _isPackageTestDoc( state[ 'target' ] ):
     args.append( 'RESOURCE_NAME="{0}"'.format( config.get( 'mcp', 'resource_name' ) ) )
     args.append( 'RESOURCE_INDEX={0}'.format( config.get( 'mcp', 'resource_index' ) ) )
 
   logging.info( 'iterate: executing setup "{0}"'.format( state[ 'target' ] ) )
-  ( results, rc ) = execute_lines_rc( '{0} {1}-setup {2}'.format( MAKE_CMD, state[ 'target' ], ' '.join( args ) ), state[ 'dir' ], extra_env=extra_env )
-  if rc != 0:
-    if rc != 1 and not _makeDidNothing( results ):
-      mcp.setResults( ( 'Error with {0}-setup\n'.format( state[ 'target' ] ) ) + '\n'.join( results ) )
-      return False
 
-  logging.info( 'iterate: executing target "{0}"'.format( state[ 'target' ] ) )
-  ( target_results, rc ) = execute_lines_rc( '{0} {1} {2}'.format( MAKE_CMD, state[ 'target' ], ' '.join( args ) ), state[ 'dir' ], extra_env=extra_env )
-  if rc != 0:
-    if rc != 1 and _makeDidNothing( target_results ):
-      mcp.setResults( None )
-      return True
+  try:
+    runMake( '{0}-setup {1}'.format( state[ 'target' ], ' '.join( args ) ), state[ 'dir' ], extra_env=extra_env )
+  except MakeException as e:
+    logging.warn( 'iterate: with "{0}"-setup'.format( state[ 'target' ] ) )
+    mcp.setResults( state[ 'target' ], 'Error with "{0}"-setup: "{1}"'.format( state[ 'target' ], e ) )
+    return False
 
-    else:
-      mcp.setResults( ( 'Error with target {0}\n'.format( state[ 'target' ] ) ) + '\n'.join( target_results ) )
-      return False
+  if state[ 'target' ] == 'test':
+    return testTarget( state, mcp, args, extra_env )
 
-  if _makeDidNothing( target_results ):
-    mcp.setResults( None )
-    return True
-  else:
-    mcp.setResults( '\n'.join( target_results ) )
+  elif _isPackageBuild( state[ 'target'] ):
+    packrat = getPackrat( config )  # connect to Packrat first, just in case there is a problem, then we know right up front
+    if not packrat:
+      raise Exception( 'iterate: Error Connecting to packrat' )
 
-  mcp.setScore( extractScore( target_results ) )
+    try:
+      return buildTarget( state, mcp, packrat, args, extra_env, config.get( 'mcp', 'store_packages' ) )
+    finally:
+      packrat.logout()
 
-  # if doc, upload to confluence
-  if state == 'doc':
-    if rc != 0 or len( results ) == 0:
-      mcp.setResults( ( 'Error getting {0}-file\n'.format( state[ 'target' ] ) ) + '\n'.join( results ) )
-      return False
+  elif state[ 'target' ] == 'doc':
+    confluence = None
+    return docTarget( state, mcp, confluence, args, extra_env )
 
-    filename_list = []
-    for line in results:
-      filename_list += line.split()
-
-    for filename in filename_list:
-      ( local_filename, confluence_filename ) = filename.split( ':' )
-      uploadToConfluence( config, local_filename, confluence_filename  )
-
-  # if package/resource upload to packrat
-  if _isPackageBuild( state ):
-    logging.info( 'iterate: getting package file "{0}"'.format( state[ 'target' ] ) )
-    mcp.sendStatus( 'Package Build' )
-    ( results, rc ) = execute_lines_rc( '{0} -s {1}-file {2}'.format( MAKE_CMD, state[ 'target' ], ' '.join( args ) ), state[ 'dir' ] )
-    if rc != 0 or len( results ) == 0:
-      mcp.setResults( ( 'Error getting {0}-file\n'.format( state[ 'target' ] ) ) + '\n'.join( results ) )
-      return False
-
-    package_file_list = []
-    filename_list = []
-    for line in results:
-      filename_list += line.split()
-
-    for filename in filename_list:
-      try:
-        ( filename, version ) = filename.split( ':' )
-      except ValueError:
-        version = None
-
-      if filename[0] != '/':  # it's not an aboslute path, prefix is with the working dir
-        filename = os.path.realpath( os.path.join( state[ 'dir' ], filename ) )
-
-      if packrat.checkFileName( os.path.basename( filename ) ):
-        mcp.setResults( 'Filename "{0}" is allready in use in packrat, skipping the file in upload.'.format( os.path.basename( filename ) ) )
-        logging.warning( 'Filename "{0}" allready on packrat, skipping...'.format( os.path.basename( filename ) ) )
-        target_results.append( '=== File "{0}" skipped.'.format( os.path.basename( filename ) ) )
-        continue
-
-      logging.info( 'iterate: uploading "{0}"'.format( filename ) )
-      src = open( filename, 'rb' )
-      try:
-        result = packrat.addPackageFile( src, 'Package File "{0}"'.format( os.path.basename( filename ) ), 'MCP Auto Build from {0}.  Build on {1} at {2}'.format( state[ 'url' ], socket.getfqdn(), datetime.utcnow() ), version )
-
-      except Exception as e:
-        logging.exception( 'iterate: Exception "{0}" while adding package file "{1}"'.format( e, filename ) )
-        mcp.uploadedPackages( package_file_list )
-        mcp.setResults( 'Exception adding package file "{0}"'.format( filename ) )
-        src.close()
-        return False
-
-      src.close()
-
-      if isinstance( result, list ):
-        raise Exception( 'Packrat was unable to detect distro, options are "{0}"'.format( result ) )
-
-      target_results.append( '=== File "{0}" uploaded.'.format( os.path.basename( filename ) ) )
-      package_file_list.append( os.path.basename( filename ) )
-
-      if result is not None:
-        mcp.sendStatus( 'Packge(s) NOT (all) Uploaded: result "{0}"'.format( result ) )
-        mcp.uploadedPackages( package_file_list )
-        mcp.setResults( '\n'.join( target_results ) )
-        return False
-
-      if not packrat.checkFileName( os.path.basename( filename ) ):
-        raise Exception( 'Recently added file "{0}" not showing in packrat.'.format( os.path.basename( filename ) ) )
-
-    packrat.logout()
-
-    mcp.sendStatus( 'Package(s) Uploaded' )
-    mcp.uploadedPackages( package_file_list )
-    mcp.setResults( '\n'.join( target_results ) )
-
-  return True
+  return otherTarget( state, mcp, args, extra_env )
