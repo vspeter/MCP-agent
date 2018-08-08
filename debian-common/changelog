@@ -1,3 +1,10 @@
+nullunit (0.26-1) DIST; urgency=medium
+
+  * combining test/lint
+  * flag to enable/disable uploading packages
+
+ -- Peter <peter@xps15>  Mon, 06 Aug 2018 16:02:32 -0600
+
 nullunit (0.25-3) DIST; urgency=medium
 
   * Test score extraction
@@ -27,7 +34,7 @@ nullunit (0.22-1) DIST; urgency=medium
 
   * Ported to Python3
   * Updated to work with new MCP that uses Contractor
-  * Updated to to packrat api 1.5 
+  * Updated to to packrat api 1.5
 
  -- Peter <peter@xps15>  Sat, 07 Jul 2018 22:09:34 -0600
 
@@ -59,7 +66,7 @@ nullunit (0.18-7) DIST; urgency=medium
 
 nullunit (0.17-3) DIST; urgency=medium
 
-  * run <target>-setup for all targets, 
+  * run <target>-setup for all targets,
     not just package ones
 
  -- Peter <peter@blueboy>  Tue, 02 Feb 2016 15:17:33 -0700

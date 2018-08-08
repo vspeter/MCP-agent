@@ -1,6 +1,6 @@
 # import pytest
 
-from nullunit import iterate
+from nullunit import common
 
 
 def test_makedidnothing():
@@ -24,7 +24,7 @@ def test_makedidnothing():
                     ]
 
   for item in should_be_true:
-    assert iterate._makeDidNothing( item ) is True
+    assert common.makeDidNothing( item ) is True
 
   for item in should_be_false:
-    assert iterate._makeDidNothing( item ) is False
+    assert common.makeDidNothing( item ) is False
