@@ -1,4 +1,4 @@
-nullunit (0.26-2) DIST; urgency=medium
+nullunit (0.26-3) DIST; urgency=medium
 
   * combining test/lint
   * flag to enable/disable uploading packages

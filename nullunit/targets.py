@@ -36,7 +36,7 @@ def testTarget( state, mcp, args, extra_env ):
 
 def buildTarget( state, mcp, packrat, args, extra_env, store_packages ):
   logging.info( 'targets: executing target build - "{0}"'.format( state[ 'target' ] ) )
-  mcp.MakeException( 'Building Package(s)' )
+  mcp.sendStatus( 'Building Package(s)' )
   try:
     target_results = runMake( '{0} {1}'.format( state[ 'target' ], ' '.join( args ) ), state[ 'dir' ], extra_env=extra_env )
   except MakeException as e:
