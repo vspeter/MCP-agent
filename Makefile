@@ -41,7 +41,7 @@ test-distros:
 	echo ubuntu-xenial
 
 test-requires:
-	echo flake8 python3-cinp python3-pytest python3-pytest-cov
+	echo flake8 python3-cinp python3-dev python3-setuptools python3-pytest python3-pytest-cov
 
 lint:
 	flake8 --ignore=E501,E201,E202,E111,E126,E114,E402,W605 --statistics .

@@ -61,17 +61,17 @@ def doStep( state, mcp, config ):
 
   elif start_state == 'checkout':
     doCheckout( state )
-    state[ 'state' ] = 'clean'
+    state[ 'state' ] = 'requires'
 
-  elif start_state == 'clean':
-    if doClean( state, mcp ):
-      state[ 'state' ] = 'requires'
+  elif start_state == 'requires':
+    if doRequires( state, mcp, config ):
+      state[ 'state' ] = 'clean'
     else:
       state[ 'state' ] = 'failed'
       mcp.setSuccess( False )
 
-  elif start_state == 'requires':
-    if doRequires( state, mcp, config ):
+  elif start_state == 'clean':
+    if doClean( state, mcp ):
       state[ 'state' ] = 'target'
     else:
       state[ 'state' ] = 'failed'
