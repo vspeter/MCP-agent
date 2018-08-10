@@ -253,7 +253,7 @@ def doTarget( state, mcp, config ):
       raise Exception( 'iterate: Error Connecting to packrat' )
 
     try:
-      return buildTarget( state, mcp, packrat, args, extra_env, config.get( 'mcp', 'store_packages' ) )
+      return buildTarget( state, mcp, packrat, args, extra_env, config.getboolean( 'mcp', 'store_packages', False ) )
     finally:
       packrat.logout()
 
