@@ -117,8 +117,8 @@ def doClone( state, config ):
   try:
     execute( '{0} clone {1}'.format( GIT_CMD, state[ 'url' ] ), WORK_DIR, extra_env=extra_env )
   except ExecutionException as e:
-    logging.error( 'ExecutionException "{0}" while cloning' )
-    raise Exception( 'Exception "{0}" while cloning' )
+    logging.error( 'ExecutionException "{0}" while cloning'.format( e ) )
+    raise Exception( 'Exception "{0}" while cloning'.format( e ) )
 
   return glob.glob( '{0}/*'.format( WORK_DIR ) )[0]
 
@@ -253,7 +253,7 @@ def doTarget( state, mcp, config ):
       raise Exception( 'iterate: Error Connecting to packrat' )
 
     try:
-      return buildTarget( state, mcp, packrat, args, extra_env, config.getboolean( 'mcp', 'store_packages', False ) )
+      return buildTarget( state, mcp, packrat, args, extra_env, config.getboolean( 'mcp', 'store_packages' ) )
     finally:
       packrat.logout()
 
