@@ -4,6 +4,7 @@ import re
 import os
 
 from nullunit.MCP import MCP
+from nullunit.Contractor import Contractor
 from nullunit.Packrat import Packrat
 from nullunit.procutils import execute_lines_rc
 
@@ -65,10 +66,16 @@ def getConfig():
 
 def getMCP( config ):
   try:
-    return MCP( config.get( 'mcp', 'host' ), config.get( 'mcp', 'proxy' ), config.getint( 'mcp', 'instance_id' ), config.get( 'mcp', 'instance_cookie' ) )
+    return MCP( config.get( 'mcp', 'host' ), config.get( 'mcp', 'proxy' ), config.getint( 'mcp', 'job_id' ), config.getint( 'mcp', 'instance_id' ), config.get( 'mcp', 'instance_cookie' ) )
   except configparser.Error:
-    logging.error( 'Error retreiving MCP host, proxy, instance_id, and/or instance_cookie from config file.' )
+    logging.error( 'Error retreiving MCP host, proxy, job_id, instance_id, and/or instance_cookie from config file.' )
     return None
+
+
+def getContractor( mcp ):
+  info = mcp.contractorInfo()
+
+  return Contractor( info[ 'host' ], info[ 'proxy' ] )
 
 
 def getPackrat( config ):

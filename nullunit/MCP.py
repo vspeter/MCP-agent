@@ -5,7 +5,7 @@ import math
 
 from cinp import client
 
-PROCESSOR_API_VERSION = '0.1'
+API_VERSION = '0.9'
 
 # TODO: move backoff delay and retries to cinp client
 DELAY_MULTIPLIER = 15
@@ -28,8 +28,9 @@ def _backOffDelay( count ):
 
 
 class MCP( object ):
-  def __init__( self, host, proxy, instance_id, cookie ):
+  def __init__( self, host, proxy, job_id, instance_id, cookie ):
     self.cinp = client.CInP( host, '/api/v1/', proxy )
+    self.job_id = job_id
     self.instance_id = instance_id
     self.cookie = cookie
 
@@ -37,22 +38,28 @@ class MCP( object ):
     while True:
       count += 1
       try:
-        root = self.cinp.describe( '/api/v1/Processor' )
+        root = self.cinp.describe( '/api/v1/' )
         break
       except ( client.Timeout, client.ResponseError ):
         _backOffDelay( count )
         logging.warn( 'MCP: getRequest: retry {0}'.format( count ) )
 
-    if root[ 'api-version' ] != PROCESSOR_API_VERSION:
-      raise Exception( 'Expected API version "{0}" found "{1}"'.format( PROCESSOR_API_VERSION, root[ 'api-version' ] ) )
+    if root[ 'api-version' ] != API_VERSION:
+      raise Exception( 'Expected API version "{0}" found "{1}"'.format( API_VERSION, root[ 'api-version' ] ) )
+
+  def contractorInfo( self ):
+    logging.info( 'MCP: Get Contractor Info' )
+    info = self.cinp.call( '/api/v1/config(getContractorInfo)', {} )
+
+    return { 'host': info[ 'host' ], 'proxy': self.cinp.proxy }
 
   def signalJobRan( self ):
     logging.info( 'MCP: Signal Job Ran' )
     self.cinp.call( '/api/v1/Processor/Instance:{0}:(jobRan)'.format( self.instance_id ), { 'cookie': self.cookie } )
 
-  def sendStatus( self, status ):
-    logging.info( 'MCP: Status "{0}"'.format( status ) )
-    self.cinp.call( '/api/v1/Processor/Instance:{0}:(setStatus)'.format( self.instance_id ), { 'cookie': self.cookie, 'status': status } )
+  def sendMessage( self, message ):
+    logging.info( 'MCP: Message "{0}"'.format( message ) )
+    self.cinp.call( '/api/v1/Processor/Instance:{0}:(setMessage)'.format( self.instance_id ), { 'cookie': self.cookie, 'message': message } )
 
   def setSuccess( self, success ):
     logging.info( 'MCP: Success "{0}"'.format( success ) )
@@ -80,33 +87,52 @@ class MCP( object ):
 
     self.cinp.call( '/api/v1/Processor/Instance:{0}:(addPackageFiles)'.format( self.instance_id ), { 'cookie': self.cookie, 'package_files': package_files } )
 
-  def getConfigStatus( self, resource, index=None, count=None ):
-    raise Exception( 'Not Updated' )
+  def getInstanceState( self, name=None ):
+    logging.info( 'MCP: Instance State for "{0}"'.format( name ) )
+    args = {}
+    if name is not None:
+      args[ 'name' ] = name
 
-    logging.info( 'MCP: Config Status for "{0}" index: "{1}", count: "{2}"'.format( resource, index, count ) )
-    args = { 'name': resource }
-    if index is not None:
-      args[ 'index' ] = index
+    # json encoding turns the numeric dict keys into strings, this will undo that
+    result = {}
+    state_map = self.cinp.call( '/api/v1/Processor/BuildJob:{0}:(getInstanceState)'.format( self.job_id ), args )
+    if name is None:
+      for name in state_map:
+        result[ name ] = {}
+        for index, state in state_map[ name ].items():
+          result[ name ][ int( index ) ] = state
+    else:
+      for index, state in state_map.items():
+        result[ int( index ) ] = state
 
-    if count is not None:
-      args[ 'count' ] = count
+    return result
 
-    return self.cinp.call( '/api/v1/Processor/BuildJob:{0}:(getConfigStatus)'.format( self.job_id ), args )
+  def getInstanceDetail( self, name=None ):
+    logging.info( 'MCP: Instance Detail for "{0}"'.format( name ) )
+    args = {}
+    if name is not None:
+      args[ 'name' ] = name
 
-  def getProvisioningInfo( self, resource, index=None, count=None ):
-    raise Exception( 'Not Updated' )
+    # json encoding turns the numeric dict keys into strings, this will undo that
+    result = {}
+    detail_map = self.cinp.call( '/api/v1/Processor/BuildJob:{0}:(getInstanceDetail)'.format( self.job_id ), args )
+    if name is None:
+      for name in detail_map:
+        result[ name ] = {}
+        for index, detail in detail_map[ name ].items():
+          result[ name ][ int( index ) ] = detail
+    else:
+      for index, detail in detail_map.items():
+        result[ int( index ) ] = detail
 
-    logging.info( 'MCP: Provisioning Info for "{0}" index: "{1}", count: "{2}"'.format( resource, index, count ) )
-    args = { 'name': resource }
-    if index is not None:
-      args[ 'index' ] = index
+    return result
 
-    if count is not None:
-      args[ 'count' ] = count
-
-    return self.cinp.call( '/api/v1/Processor/BuildJob:{0}:(getProvisioningInfo)'.format( self.job_id ), args )
-
-  def setValue( self, value_map  ):
+  def updateValueMap( self, value_map  ):
     logging.info( 'MCP: Setting Value "{0}"'.format( value_map ) )
 
-    return self.cinp.call( '/api/v1/Processor/Instance:{0}:(setConfigValues)'.format( self.instance_id ), { 'cookie': self.cookie, 'value_map': value_map } )
+    return self.cinp.call( '/api/v1/Processor/Instance:{0}:(updateValueMap)'.format( self.instance_id ), { 'cookie': self.cookie, 'value_map': value_map } )
+
+  def getValueMap( self, name=None ):
+    logging.info( 'MCP: Getting Value Map' )
+
+    return self.cinp.call( '/api/v1/Processor/BuildJob:{0}:(getValueMap)'.format( self.instance_id ), { 'cookie': self.cookie } )
