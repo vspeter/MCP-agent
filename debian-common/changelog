@@ -1,3 +1,9 @@
+nullunit (0.27-1) DIST; urgency=medium
+
+  * updated nullunitInterface for the new mcp/contractor interface
+
+ -- Peter <peter@xps15>  Mon, 27 Aug 2018 08:12:23 -0600
+
 nullunit (0.26-5) DIST; urgency=medium
 
   * combining test/lint

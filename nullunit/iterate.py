@@ -52,7 +52,7 @@ def writeState( file, state ):
 
 def doStep( state, mcp, config ):
   start_state = state[ 'state' ]
-  mcp.sendStatus( 'Executing Stage "{0}"'.format( start_state ) )
+  mcp.sendMessage( 'Executing Stage "{0}"'.format( start_state ) )
   logging.info( 'iterate: Executing Stage "{0}"'.format( start_state ) )
 
   if start_state == 'clone':
@@ -88,7 +88,7 @@ def doStep( state, mcp, config ):
   else:
     raise Exception( 'Unknown state "{0}"'.format( start_state ) )
 
-  mcp.sendStatus( 'Stage "{0}" Complete'.format( start_state ) )
+  mcp.sendMessage( 'Stage "{0}" Complete'.format( start_state ) )
   logging.info( 'iterate: Stage "{0}" Complete'.format( start_state ) )
 
 
