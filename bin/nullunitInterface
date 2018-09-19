@@ -200,6 +200,12 @@ else:
   oparser.print_help()
   sys.exit( 1 )
 
+if options.count == 1:
+  try:
+    result = result[0]
+  except IndexError:
+    result = None
+
 # output what we have
 if options.file:
   output = open( options.file, 'w' )
