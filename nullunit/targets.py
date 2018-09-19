@@ -8,7 +8,7 @@ from nullunit.scoring import extractScore
 
 def testTarget( state, mcp, args, extra_env ):
   logging.info( 'targets: executing target lint' )
-  mcp.sendStatus( 'Running Lint' )
+  mcp.sendMessage( 'Running Lint' )
   try:
     lint_results = runMake( 'lint {0}'.format( ' '.join( args ) ), state[ 'dir' ], extra_env )
   except MakeException as e:
@@ -20,7 +20,7 @@ def testTarget( state, mcp, args, extra_env ):
   mcp.setResults( 'lint', '\n'.join( lint_results ) )
 
   logging.info( 'targets: executing target test' )
-  mcp.sendStatus( 'Running Test' )
+  mcp.sendMessage( 'Running Test' )
   try:
     test_results = runMake( 'test {0}'.format( ' '.join( args ) ), state[ 'dir' ], extra_env )
   except MakeException as e:
@@ -36,7 +36,7 @@ def testTarget( state, mcp, args, extra_env ):
 
 def buildTarget( state, mcp, packrat, args, extra_env, store_packages ):
   logging.info( 'targets: executing target build - "{0}"'.format( state[ 'target' ] ) )
-  mcp.sendStatus( 'Building Package(s)' )
+  mcp.sendMessage( 'Building Package(s)' )
   try:
     target_results = runMake( '{0} {1}'.format( state[ 'target' ], ' '.join( args ) ), state[ 'dir' ], extra_env=extra_env )
   except MakeException as e:
@@ -63,7 +63,7 @@ def buildTarget( state, mcp, packrat, args, extra_env, store_packages ):
   for line in results:
     filename_list += line.split()
 
-  mcp.sendStatus( 'Uploading Package(s)' )
+  mcp.sendMessage( 'Uploading Package(s)' )
   for filename in filename_list:
     try:
       ( filename, version ) = filename.split( ':' )
@@ -94,7 +94,7 @@ def buildTarget( state, mcp, packrat, args, extra_env, store_packages ):
       raise Exception( 'Packrat was unable to detect distro, options are "{0}"'.format( result ) )
 
     if result is not None:
-      mcp.sendStatus( 'Packge(s) NOT (all) Uploaded: result "{0}"'.format( result ) )
+      mcp.sendMessage( 'Packge(s) NOT (all) Uploaded: result "{0}"'.format( result ) )
       mcp.setResults( state[ 'target' ], '\n'.join( target_results ) )  # yes we do it a second time, now it has the files uploaded appended
       mcp.uploadedPackages( package_file_list )
       return False
