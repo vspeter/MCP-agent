@@ -93,7 +93,7 @@ class MCP( object ):
     if name is not None:
       args[ 'name' ] = name
 
-    # json encoding turns the numeric dict keys into strings, this will undo that
+    # json encoding turns the numeric dict keys into strings, this will undo that  # TODO:  this is fixed in CInP now??
     result = {}
     state_map = self.cinp.call( '/api/v1/Processor/BuildJob:{0}:(getInstanceState)'.format( self.job_id ), args )
     if name is None:
@@ -130,9 +130,11 @@ class MCP( object ):
   def updateValueMap( self, value_map  ):
     logging.info( 'MCP: Setting Value "{0}"'.format( value_map ) )
 
-    return self.cinp.call( '/api/v1/Processor/Instance:{0}:(updateValueMap)'.format( self.instance_id ), { 'cookie': self.cookie, 'value_map': value_map } )
+    self.cinp.call( '/api/v1/Processor/Instance:{0}:(updateValueMap)'.format( self.instance_id ), { 'cookie': self.cookie, 'value_map': value_map } )
+
+    return True
 
   def getValueMap( self, name=None ):
     logging.info( 'MCP: Getting Value Map' )
 
-    return self.cinp.call( '/api/v1/Processor/BuildJob:{0}:(getValueMap)'.format( self.instance_id ), { 'cookie': self.cookie } )
+    return self.cinp.call( '/api/v1/Processor/Instance:{0}:(getValueMap)'.format( self.instance_id ), { 'cookie': self.cookie } )
