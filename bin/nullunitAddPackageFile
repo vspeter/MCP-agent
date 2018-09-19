@@ -34,7 +34,7 @@ packrat = getPackrat( config )
 if not packrat:
   sys.exit( 1 )
 
-file = open( args[0], 'r' )
+file = open( args[0], 'rb' )
 result = packrat.addPackageFile( file, options.justification, options.provenance, options.distro )
 file.close()
 
@@ -43,7 +43,7 @@ if isinstance( result, list ):
   packrat.logout()
   sys.exit( 1 )
 
-if result is not True:
+if result is not None:
   print( 'Unexpected result "{0}"'.format( result ) )
   packrat.logout()
   sys.exit( 1 )

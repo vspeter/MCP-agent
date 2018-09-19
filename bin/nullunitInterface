@@ -31,17 +31,17 @@ oparser = OptionParser( description='nullunit iterator' )
 oparser.add_option( '-v', '--verbose', dest='verbose', default=False, action='store_true' )
 
 # job contoll
-ogroup = OptionGroup( oparser, 'Job Control Options', 'Affects only the job attached to this device' )
+ogroup = OptionGroup( oparser, 'Job Control Options', 'Affects the job this instance is a part of' )
 ogroup.add_option(       '--signal-ran', help='Signal the job has been Run', dest='signal_ran', default=False, action='store_true' )
 ogroup.add_option(       '--get-keyval', help='get value from job value_map, will be regex matched', dest='get_keyval', type='string' )
 ogroup.add_option(       '--set-keyval', help='set the job value_map key to value, can be specified multiple times (ie: --set-keyval=mykey:myvalue), if value starts with { or [ it will be treated as JSON. Tip: you may have to wrap in \'\' ie: \'--set-keyval=myval=[ "stuff", "here" ]\'', dest='set_keyval', type='string', action='append' )
 oparser.add_option_group( ogroup )
 
 # query options
-ogroup = OptionGroup( oparser, 'Instance Query Options', 'Select which Instance to work with' )
+ogroup = OptionGroup( oparser, 'Instance Query Options', 'Select which Instance to work with, if index is ouside the aviable results, the result will be empty' )
 ogroup.add_option( '-n', '--name', help='with instance name', dest='name', default=None )
 ogroup.add_option( '-i', '--index', help='query with instance index, otherwise all instances with the matched name will be selected, ignored if name is not specified', dest='index', default=None, type='int' )
-ogroup.add_option( '-c', '--count', help='number of items to return, ignored if name is not specified', dest='count', default=None, type='int' )
+ogroup.add_option( '-c', '--count', help='number of items to return, ignored if name is not specified, returns up to this number, depending on your name/index you may get fewer', dest='count', default=None, type='int' )
 oparser.add_option_group( ogroup )
 
 # status options
@@ -53,6 +53,8 @@ oparser.add_option_group( ogroup )
 ogroup = OptionGroup( oparser, 'Data Options', 'Retrieve the following information, only one' )
 ogroup.add_option(       '--instance-count', help='get the number of instances that fit the query, not affected by index/count', dest='instance_count', default=False, action='store_true' )
 ogroup.add_option(       '--primary-ip', help='get the primary ip', dest='primary_ip', default=False, action='store_true' )
+ogroup.add_option(       '--hostname', help='get the hostname', dest='hostname', default=False, action='store_true' )
+ogroup.add_option(       '--fqdn', help='get the FQDN', dest='fqdn', default=False, action='store_true' )
 oparser.add_option_group( ogroup )
 
 # output option
@@ -83,7 +85,7 @@ if options.signal_ran:
   sys.exit( 0 )
 
 if options.set_keyval:
-  values = {}
+  value_map = {}
   for item in options.set_keyval:
     try:
       ( key, value ) = item.split( ':', 1 )
@@ -94,10 +96,10 @@ if options.set_keyval:
     if value[0] in ( '[', '{' ):
       value = json.loads( value )
 
-    values[ key ] = value
+    value_map[ key ] = value
 
-  if not mcp.updateValueMap( values ):
-    print( 'Error Updatting Value(s) "{0}"'.format( values ) )
+  if not mcp.updateValueMap( value_map ):
+    print( 'Error Updatting Value(s) "{0}"'.format( value_map ) )
     sys.exit( 1 )
 
   sys.exit( 0 )
@@ -134,7 +136,7 @@ if options.are_built:
 result = []
 
 # Instance data
-if options.primary_ip or options.instance_count:
+if options.primary_ip or options.hostname or options.fqdn or options.instance_count:
   instance_list = []
 
   if options.name is None:
@@ -154,8 +156,8 @@ if options.primary_ip or options.instance_count:
   if options.primary_ip:
     instance_config = contractor.getConfig( [ i[ 'structure_id' ] for i in instance_list ] )
 
-    for instnace in instance_config.values():
-      for interface in instnace[ 'interface_list' ]:
+    for instance in instance_config.values():
+      for interface in instance[ 'interface_list' ]:
         for address in interface[ 'address_list' ]:
           if address[ 'primary' ]:
             result.append( address[ 'address' ] )
@@ -164,6 +166,18 @@ if options.primary_ip or options.instance_count:
           continue
 
         break
+
+  elif options.hostname:
+    instance_config = contractor.getConfig( [ i[ 'structure_id' ] for i in instance_list ] )
+
+    for instance in instance_config.values():
+      result.append( instance[ 'hostname' ] )
+
+  elif options.fqdn:
+    instance_config = contractor.getConfig( [ i[ 'structure_id' ] for i in instance_list ] )
+
+    for instance in instance_config.values():
+      result.append( instance[ 'hostname' ] )
 
   elif options.instance_count:
     result = len( instance_list )
@@ -174,9 +188,12 @@ if options.primary_ip or options.instance_count:
 
 # Job data
 elif options.get_keyval:
-  result = mcp.getValueMap()
-
+  value_map = mcp.getValueMap()
+  result = {}
   pattern = re.compile( options.get_keyval )
+  for key, value in value_map.items():
+    if pattern.match( key ):
+      result[ key ] = value
 
 # all options should of been caught by now
 else:
