@@ -3,62 +3,59 @@ DISTRO_MAJOR_VERSION := $(shell lsb_release -sr | cut -d. -f1)
 DISTRO_NAME := $(shell lsb_release -sc | tr A-Z a-z)
 
 all:
+	./setup.py build
 
 install:
-	mkdir -p $(DESTDIR)usr/sbin
-	mkdir -p $(DESTDIR)etc/mcp
-	mkdir -p $(DESTDIR)var/lib/plato/templates/nullunit/
-	install -m 644 templates/nullunit/* $(DESTDIR)var/lib/plato/templates/nullunit/
-	install -m 755 sbin/nullunitIterate $(DESTDIR)usr/sbin
-	install -m 755 sbin/nullunitInterface $(DESTDIR)usr/sbin
-	install -m 755 sbin/nullunitMasterSync $(DESTDIR)usr/sbin
-	install -m 755 sbin/nullunitAddPackageFile $(DESTDIR)usr/sbin
+	mkdir -p $(DESTDIR)/usr/bin
+	mkdir -p $(DESTDIR)/etc/mcp
+	mkdir -p $(DESTDIR)/var/lib/config-curator/templates/nullunit/
+	install -m 755 bin/nullunitIterate $(DESTDIR)/usr/bin
+	install -m 755 bin/nullunitInterface $(DESTDIR)/usr/bin
+	install -m 755 bin/nullunitAddPackageFile $(DESTDIR)/usr/bin
+	install -m 644 templates/nullunit/* $(DESTDIR)/var/lib/config-curator/templates/nullunit
+
+ifeq (ubuntu, $(DISTRO))
+	./setup.py install --root $(DESTDIR) --install-purelib=/usr/lib/python3/dist-packages/ --prefix=/usr --no-compile -O0
+else
+	./setup.py install --root $(DESTDIR) --prefix=/usr --no-compile -O0
+endif
 
 clean:
+	./setup.py clean
 	$(RM) -fr build
 	$(RM) -f dpkg
 	$(RM) -f rpm
+ifeq (ubuntu, $(DISTRO))
+	dh_clean || true
+endif
 
-full-clean: clean
+dist-clean: clean
 	$(RM) -fr debian
 	$(RM) -fr rpmbuild
 	$(RM) -f dpkg-setup
 	$(RM) -f rpm-setup
 
+.PHONY:: all install clean dist-clean
+
 test-distros:
-	echo precise trusty xenial centos6
+	echo ubuntu-xenial
 
 test-requires:
-	echo python-cinp
-ifeq (centos, $(DISTRO))
-	echo pytest
-else ifeq (precise, $(DISTRO_NAME))
-	echo python-py
-else
-	echo python-pytest
-endif
-
-test:
-	cd tests && py.test -x iterate.py
-
-lint-requires:
-ifeq (trusty, $(DISTRO_NAME))
-	echo linter
-endif
+	echo flake8 python3-cinp python3-dev python3-setuptools python3-pytest python3-pytest-cov
 
 lint:
-ifeq (trusty, $(DISTRO_NAME))
-	linter
-endif
+	flake8 --ignore=E501,E201,E202,E111,E126,E114,E402,W605 --statistics .
+
+test:
+	py.test-3 nullunit --cov=nullunit --cov-report html --cov-report term
+
+.PHONY:: test-distros lint-requires lint test-requires test
 
 dpkg-distros:
-	echo precise trusty xenial
+	echo ubuntu-trusty ubuntu-xenial ubuntu-bionic
 
 dpkg-requires:
-	echo dpkg-dev debhelper cdbs
-ifneq (xenial, $(DISTRO_NAME))
-	echo python-support
-endif
+	echo dpkg-dev debhelper python3-dev python3-setuptools
 
 dpkg-setup:
 	./debian-setup
@@ -71,11 +68,13 @@ dpkg:
 dpkg-file:
 	echo $(shell ls ../nullunit_*.deb)
 
+.PHONY:: dpkg-distros dpkg-requires dpkg-file
+
 rpm-distros:
-	echo centos6
+	echo centos-6
 
 rpm-requires:
-	echo rpm-build
+	echo rpm-build python34-setuptools
 
 rpm-setup:
 	./rpmbuild-setup
@@ -88,4 +87,4 @@ rpm:
 rpm-file:
 	echo $(shell ls rpmbuild/RPMS/*/nullunit-*.rpm)
 
-.PHONY: all clean full-clean test-distros test-requires test lint-requires lint dpkg-distros dpkg-requires dpkg-file rpm-distros rpm-requires rpm-file
+.PHONY:: rpm-distros rpm-requires rpm-file

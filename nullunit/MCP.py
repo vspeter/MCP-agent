@@ -1,84 +1,140 @@
 import logging
+import time
+import random
+import math
 
 from cinp import client
 
+API_VERSION = '0.9'
+
+# TODO: move backoff delay and retries to cinp client
+DELAY_MULTIPLIER = 15
+# delay of 15 results in a delay of:
+# min delay = 0, 10, 16, 20, 24, 26, 29, 31, 32, 34, 35, 37, 38, 39, 40 ....
+# max delay = 0, 20, 32, 40, 48, 52, 58, 62, 64, 68, 70, 74, 76, 78, 80 .....
+
+
+def _backOffDelay( count ):
+  if count < 1:  # math.log dosen't do so well below 1
+    count = 1
+
+  if count > 20:  # really don't need to get any more delaied than this
+    count = 20
+
+  factor = int( DELAY_MULTIPLIER * math.log( count ) )
+  delay = factor + ( random.random() * factor )
+  logging.debug( 'MCP: sleeping for "{0}"'.format( delay ) )
+  time.sleep( delay )
+
+
 class MCP( object ):
-  def __init__( self, host, proxy, job_id, name, index ):
-    self.cinp = client.CInP( host, '/api/v1', proxy )
+  def __init__( self, host, proxy, job_id, instance_id, cookie ):
+    self.cinp = client.CInP( host, '/api/v1/', proxy )
     self.job_id = job_id
-    self.name = name
-    self.index = index
+    self.instance_id = instance_id
+    self.cookie = cookie
+
+    count = 0
+    while True:
+      count += 1
+      try:
+        root = self.cinp.describe( '/api/v1/' )
+        break
+      except ( client.Timeout, client.ResponseError ):
+        _backOffDelay( count )
+        logging.warn( 'MCP: getRequest: retry {0}'.format( count ) )
+
+    if root[ 'api-version' ] != API_VERSION:
+      raise Exception( 'Expected API version "{0}" found "{1}"'.format( API_VERSION, root[ 'api-version' ] ) )
+
+  def contractorInfo( self ):
+    logging.info( 'MCP: Get Contractor Info' )
+    info = self.cinp.call( '/api/v1/config(getContractorInfo)', {} )
+
+    return { 'host': info[ 'host' ], 'proxy': self.cinp.proxy }
 
   def signalJobRan( self ):
     logging.info( 'MCP: Signal Job Ran' )
-    self.cinp.call( '/api/v1/Processor/BuildJob:%s:(jobRan)' % self.job_id, {} )
+    self.cinp.call( '/api/v1/Processor/Instance:{0}:(jobRan)'.format( self.instance_id ), { 'cookie': self.cookie } )
 
-  def sendStatus( self, status ):
-    logging.info( 'MCP: Status "%s"' % status )
-    self.cinp.call( '/api/v1/Processor/BuildJob:%s:(updateResourceState)' % self.job_id, { 'name': self.name, 'index': self.index, 'status': status } )
+  def sendMessage( self, message ):
+    logging.info( 'MCP: Message "{0}"'.format( message ) )
+    self.cinp.call( '/api/v1/Processor/Instance:{0}:(setMessage)'.format( self.instance_id ), { 'cookie': self.cookie, 'message': message } )
 
   def setSuccess( self, success ):
-    logging.info( 'MCP: Success "%s"' % success )
-    self.cinp.call( '/api/v1/Processor/BuildJob:%s:(setResourceSuccess)' % self.job_id, { 'name': self.name, 'index': self.index, 'success': success } )
+    logging.info( 'MCP: Success "{0}"'.format( success ) )
+    self.cinp.call( '/api/v1/Processor/Instance:{0}:(setSuccess)'.format( self.instance_id ), { 'cookie': self.cookie, 'success': success } )
 
-  def setResults( self, results ):
+  def setResults( self, target, results ):
     if results is not None:
-      logging.info( 'MCP: Results "%s"' % results[ -100: ].strip() )
+      logging.info( 'MCP: Results "{0}"'.format( results[ -100: ].strip() ) )
     else:
       logging.info( 'MCP: Results <empty>' )
 
-    self.cinp.call( '/api/v1/Processor/BuildJob:%s:(setResourceResults)' % self.job_id, { 'name': self.name, 'index': self.index, 'results': results } )
+    self.cinp.call( '/api/v1/Processor/Instance:{0}:(setResults)'.format( self.instance_id ), { 'cookie': self.cookie, 'target': target, 'results': results } )
 
-  def setScore( self, score ):
+  def setScore( self, target, score ):
     if score is not None:
-      logging.info( 'MCP: Score "%s"' % score )
+      logging.info( 'MCP: Score "{0}"'.format( score ) )
     else:
       logging.info( 'MCP: Score <undefined>' )
 
-    self.cinp.call( '/api/v1/Processor/BuildJob:%s:(setResourceScore)' % self.job_id, { 'name': self.name, 'index': self.index, 'score': score } )
+    self.cinp.call( '/api/v1/Processor/Instance:{0}:(setScore)'.format( self.instance_id ), { 'cookie': self.cookie, 'target': target, 'score': score } )
 
   def uploadedPackages( self, package_files ):
     if not package_files:
       return
 
-    self.cinp.call( '/api/v1/Processor/BuildJob:%s:(addPackageFiles)' % self.job_id, { 'name': self.name, 'index': self.index, 'package_files': package_files } )
+    self.cinp.call( '/api/v1/Processor/Instance:{0}:(addPackageFiles)'.format( self.instance_id ), { 'cookie': self.cookie, 'package_files': package_files } )
 
-  def getConfigStatus( self, resource, index=None, count=None ):
-    logging.info( 'MCP: Config Status for "%s" index: "%s", count: "%s"' % ( resource, index, count ) )
-    args = { 'name': resource }
-    if index is not None:
-      args[ 'index' ] = index
+  def getInstanceState( self, name=None ):
+    logging.info( 'MCP: Instance State for "{0}"'.format( name ) )
+    args = {}
+    if name is not None:
+      args[ 'name' ] = name
 
-    if count is not None:
-      args[ 'count' ] = count
+    # json encoding turns the numeric dict keys into strings, this will undo that  # TODO:  this is fixed in CInP now??
+    result = {}
+    state_map = self.cinp.call( '/api/v1/Processor/BuildJob:{0}:(getInstanceState)'.format( self.job_id ), args )
+    if name is None:
+      for name in state_map:
+        result[ name ] = {}
+        for index, state in state_map[ name ].items():
+          result[ name ][ int( index ) ] = state
+    else:
+      for index, state in state_map.items():
+        result[ int( index ) ] = state
 
-    return self.cinp.call( '/api/v1/Processor/BuildJob:%s:(getConfigStatus)' % self.job_id, args )[ 'value' ]
+    return result
 
-  def getProvisioningInfo( self, resource, index=None, count=None ):
-    logging.info( 'MCP: Provisioning Info for "%s" index: "%s", count: "%s"' % ( resource, index, count ) )
-    args = { 'name': resource }
-    if index is not None:
-      args[ 'index' ] = index
+  def getInstanceDetail( self, name=None ):
+    logging.info( 'MCP: Instance Detail for "{0}"'.format( name ) )
+    args = {}
+    if name is not None:
+      args[ 'name' ] = name
 
-    if count is not None:
-      args[ 'count' ] = count
+    # json encoding turns the numeric dict keys into strings, this will undo that
+    result = {}
+    detail_map = self.cinp.call( '/api/v1/Processor/BuildJob:{0}:(getInstanceDetail)'.format( self.job_id ), args )
+    if name is None:
+      for name in detail_map:
+        result[ name ] = {}
+        for index, detail in detail_map[ name ].items():
+          result[ name ][ int( index ) ] = detail
+    else:
+      for index, detail in detail_map.items():
+        result[ int( index ) ] = detail
 
-    return self.cinp.call( '/api/v1/Processor/BuildJob:%s:(getProvisioningInfo)' % self.job_id, args )[ 'value' ]
+    return result
 
-  def setConfigValues( self, values, resource, index=None, count=None ):
-    logging.info( 'MCP: Setting Config Values "%s" index: "%s", count: "%s"' % ( resource, index, count ) )
-    args = { 'name': resource }
-    if index is not None:
-      args[ 'index' ] = index
+  def updateValueMap( self, value_map  ):
+    logging.info( 'MCP: Setting Value "{0}"'.format( value_map ) )
 
-    if count is not None:
-      args[ 'count' ] = count
+    self.cinp.call( '/api/v1/Processor/Instance:{0}:(updateValueMap)'.format( self.instance_id ), { 'cookie': self.cookie, 'value_map': value_map } )
 
-    args[ 'values' ] = values
+    return True
 
-    return self.cinp.call( '/api/v1/Processor/BuildJob:%s:(setConfigValues)' % self.job_id, args )[ 'value' ]
+  def getValueMap( self, name=None ):
+    logging.info( 'MCP: Getting Value Map' )
 
-  def getNetworkInfo( self, network ):
-    logging.info( 'MCP: Network Info for "%s"' % network )
-    args = { 'name': network }
-    return self.cinp.call( '/api/v1/Processor/BuildJob:%s:(getNetworkInfo)' % self.job_id, args )[ 'value' ]
+    return self.cinp.call( '/api/v1/Processor/Instance:{0}:(getValueMap)'.format( self.instance_id ), { 'cookie': self.cookie } )

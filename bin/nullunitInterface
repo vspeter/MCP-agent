@@ -1,0 +1,224 @@
+#!/usr/bin/env python3
+
+import sys
+import logging
+import json
+import re
+from optparse import OptionParser, OptionGroup
+
+from nullunit.common import getConfig, getMCP, getContractor
+
+
+def _indexSubset( index_list, start, count ):
+  if start is None:
+    start = 0
+
+  if count == 1:
+    index_list = filter( lambda x: x == start, index_list )
+
+  elif count is not None:
+    range_list = range( start, start + count )
+    index_list = filter( lambda x: x in range_list, index_list )
+
+  else:
+    index_list = filter( lambda x: x >= start, index_list )
+
+  return index_list
+
+
+oparser = OptionParser( description='nullunit iterator' )
+
+oparser.add_option( '-v', '--verbose', dest='verbose', default=False, action='store_true' )
+
+# job contoll
+ogroup = OptionGroup( oparser, 'Job Control Options', 'Affects the job this instance is a part of' )
+ogroup.add_option(       '--signal-ran', help='Signal the job has been Run', dest='signal_ran', default=False, action='store_true' )
+ogroup.add_option(       '--get-keyval', help='get value from job value_map, will be regex matched', dest='get_keyval', type='string' )
+ogroup.add_option(       '--set-keyval', help='set the job value_map key to value, can be specified multiple times (ie: --set-keyval=mykey:myvalue), if value starts with { or [ it will be treated as JSON. Tip: you may have to wrap in \'\' ie: \'--set-keyval=myval=[ "stuff", "here" ]\'', dest='set_keyval', type='string', action='append' )
+oparser.add_option_group( ogroup )
+
+# query options
+ogroup = OptionGroup( oparser, 'Instance Query Options', 'Select which Instance to work with, if index is ouside the aviable results, the result will be empty' )
+ogroup.add_option( '-n', '--name', help='with instance name', dest='name', default=None )
+ogroup.add_option( '-i', '--index', help='query with instance index, otherwise all instances with the matched name will be selected, ignored if name is not specified', dest='index', default=None, type='int' )
+ogroup.add_option( '-c', '--count', help='number of items to return, ignored if name is not specified, returns up to this number, depending on your name/index you may get fewer', dest='count', default=None, type='int' )
+oparser.add_option_group( ogroup )
+
+# status options
+ogroup = OptionGroup( oparser, 'Status Options', 'Feed back returnd as the exit code' )
+ogroup.add_option(       '--are-built', help='0 if all are built 2 otherwise', dest='are_built', default=False, action='store_true' )
+oparser.add_option_group( ogroup )
+
+# data options
+ogroup = OptionGroup( oparser, 'Data Options', 'Retrieve the following information, only one' )
+ogroup.add_option(       '--instance-count', help='get the number of instances that fit the query, not affected by index/count', dest='instance_count', default=False, action='store_true' )
+ogroup.add_option(       '--primary-ip', help='get the primary ip', dest='primary_ip', default=False, action='store_true' )
+ogroup.add_option(       '--hostname', help='get the hostname', dest='hostname', default=False, action='store_true' )
+ogroup.add_option(       '--fqdn', help='get the FQDN', dest='fqdn', default=False, action='store_true' )
+oparser.add_option_group( ogroup )
+
+# output option
+ogroup = OptionGroup( oparser, 'Data Formatting', 'Data Formatting options for Data Reterival Options' )
+ogroup.add_option(        '--file', help='write output to file, otherwise will be sent to stdout.', dest='file' )
+ogroup.add_option(        '--json', help='write output in JSON format', dest='json', default=False, action='store_true' )
+oparser.add_option_group( ogroup )
+
+( options, args ) = oparser.parse_args()
+
+logging.basicConfig()
+logger = logging.getLogger()
+
+if options.verbose:
+  logger.setLevel( logging.DEBUG )
+
+config = getConfig()
+if not config:
+  sys.exit( 1 )
+
+mcp = getMCP( config )
+if not mcp:
+  sys.exit( 1 )
+
+# job control
+if options.signal_ran:
+  mcp.signalJobRan()
+  sys.exit( 0 )
+
+if options.set_keyval:
+  value_map = {}
+  for item in options.set_keyval:
+    try:
+      ( key, value ) = item.split( ':', 1 )
+    except IndexError:
+      print( 'Error parsing item: "{0}"'.format( item ) )
+      sys.exit( 1 )
+
+    if value[0] in ( '[', '{' ):
+      value = json.loads( value )
+
+    value_map[ key ] = value
+
+  if not mcp.updateValueMap( value_map ):
+    print( 'Error Updatting Value(s) "{0}"'.format( value_map ) )
+    sys.exit( 1 )
+
+  sys.exit( 0 )
+
+# state options
+if options.are_built:
+  state_list = []
+
+  if options.name is None:
+    state_map = mcp.getInstanceState()
+    for name in state_map:
+      index_list = sorted( state_map[ name ].keys() )
+      for index in index_list:
+        state_list.append( state_map[ name ][ index ] )
+        if options.verbose:
+          print( '{0}:{1} - {2}'.format( name, index, state_map[ name ][ index ] ) )
+
+  else:
+    state_map = mcp.getInstanceState( options.name )
+    index_list = sorted( _indexSubset( state_map.keys(), options.index, options.count ) )
+
+    for index in index_list:
+      state_list.append( state_map[ index ] )
+      if options.verbose:
+        print( '{0}:{1} - {2}'.format( options.name, index, state_map[ index ] ) )
+
+  # ie: if the results_list is not empty and there are not any non 'built's in it
+  if state_list and not list( filter( None, map( lambda x: x != 'built', state_list ) ) ):
+    sys.exit( 0 )
+
+  sys.exit( 2 )
+
+# Data Retreival Options
+result = []
+
+# Instance data
+if options.primary_ip or options.hostname or options.fqdn or options.instance_count:
+  instance_list = []
+
+  if options.name is None:
+    instance_map = mcp.getInstanceDetail()
+    for name in instance_map:
+      index_list = sorted( instance_map[ name ].keys() )
+      for index in index_list:
+        instance_list.append( instance_map[ name ][ index ] )
+
+  else:
+    instance_map = mcp.getInstanceDetail( options.name )
+    index_list = sorted( _indexSubset( instance_map.keys(), options.index, options.count ) )
+    instance_list = [ instance_map[i] for i in index_list ]
+
+  contractor = getContractor( mcp )
+
+  if options.primary_ip:
+    instance_config = contractor.getConfig( [ i[ 'structure_id' ] for i in instance_list ] )
+
+    for instance in instance_config.values():
+      for interface in instance[ 'interface_list' ]:
+        for address in interface[ 'address_list' ]:
+          if address[ 'primary' ]:
+            result.append( address[ 'address' ] )
+            break
+        else:
+          continue
+
+        break
+
+  elif options.hostname:
+    instance_config = contractor.getConfig( [ i[ 'structure_id' ] for i in instance_list ] )
+
+    for instance in instance_config.values():
+      result.append( instance[ 'hostname' ] )
+
+  elif options.fqdn:
+    instance_config = contractor.getConfig( [ i[ 'structure_id' ] for i in instance_list ] )
+
+    for instance in instance_config.values():
+      result.append( instance[ 'hostname' ] )
+
+  elif options.instance_count:
+    result = len( instance_list )
+
+  else:
+    print( 'Trouble with data retreival option' )
+    sys.exit( 1 )
+
+# Job data
+elif options.get_keyval:
+  value_map = mcp.getValueMap()
+  result = {}
+  pattern = re.compile( options.get_keyval )
+  for key, value in value_map.items():
+    if pattern.match( key ):
+      result[ key ] = value
+
+# all options should of been caught by now
+else:
+  oparser.print_help()
+  sys.exit( 1 )
+
+# output what we have
+if options.file:
+  output = open( options.file, 'w' )
+else:
+  output = sys.stdout
+
+if options.json:
+  output.write( json.dumps( result, indent=2 ) )
+
+else:
+  if isinstance( result, dict ):
+    for key, value in result.items():
+      output.write( '{0}: {1}\n'.format( key, value ) )
+
+  elif isinstance( result, list ):
+    for item in result:
+      output.write( '{0}\n'.format( item ) )
+
+  else:
+    output.write( str( result ) )
+
+sys.exit( 0 )
