@@ -11,6 +11,7 @@ instance_cookie: {{ mcp_instance_cookie }}
 resource_name: {{ mcp_resource_name }}
 resource_index: {{ mcp_resource_index }}
 store_packages: {{ mcp_store_packages }}
+structure_id: {{ _structure_id }}
 
 [misc]
 proxy_env_var: {{ mcp_proxy_env_var }}

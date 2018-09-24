@@ -4,7 +4,8 @@ import glob
 import shutil
 import logging
 import time
-from nullunit.common import GIT_CMD, WORK_DIR, PACKAGE_MANAGER, getPackrat, runMake, MakeException
+import itertools
+from nullunit.common import GIT_CMD, WORK_DIR, PACKAGE_MANAGER, getPackrat, getContractor, runMake, MakeException
 from nullunit.procutils import execute, ExecutionException
 from nullunit.targets import testTarget, buildTarget, docTarget, otherTarget
 
@@ -180,12 +181,16 @@ def doRequires( state, mcp, config ):
       values[ key ] = value
 
     if values:
-      if not mcp.setConfigValues( values, config.get( 'mcp', 'resource_name' ), config.get( 'mcp', 'resource_index' ), 1 ):
+      contractor = getContractor( mcp )
+
+      if not contractor.updateConfig( config.get( 'mcp', 'structure_id' ), values ):
         raise Exception( 'iterate: Error Setting Configuration Vaules' )
 
   required_list = _makeAndGetValues( mcp, state, '{0}-requires'.format( state[ 'target' ] ), args, extra_env )
   if required_list is None:
     return False
+
+  required_list = list( set( itertools.chain.from_iterable( [ i.split() for i in required_list ] ) ) )
 
   logging.info( 'iterate: updating pkg metadata' )
   try:
@@ -196,7 +201,7 @@ def doRequires( state, mcp, config ):
     else:
       raise Exception( 'Unknown Package manager "{0}"'.format( PACKAGE_MANAGER ) )
 
-  except ExecutionException as e:
+  except ExecutionException:
     logging.error( 'ExecutionException "{0}" while updating packaging info for required packages' )
     raise Exception( 'Exception "{0}" while updating packaging info for required packages' )
 

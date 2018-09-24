@@ -22,7 +22,7 @@ def _backOffDelay( count ):
     count = 20
 
   factor = int( DELAY_MULTIPLIER * math.log( count ) )
-  delay = factor + ( random.random() * factor )
+  delay = int( factor + ( random.random() * factor ) )
   logging.debug( 'MCP: sleeping for "{0}"'.format( delay ) )
   time.sleep( delay )
 

@@ -18,5 +18,10 @@ class Contractor( object ):
   def getConfig( self, structure_id_list ):
     if not structure_id_list:
       return {}
+
     logging.info( 'Contractor: getConfig for "{0}"'.format( structure_id_list ) )
     return self.cinp.call( '/api/v1/Building/Structure:{0}:(getConfig)'.format( ':'.join( structure_id_list ) ), {}, force_multi_mode=True )
+
+  def updateConfig( self, structure_id, config_value_map ):
+    logging.info( 'Contractor: setConfigValues for "{0}"'.format( structure_id ) )
+    return self.cinp.call( '/api/v1/Building/Structure:{0}:(updateConfig)'.format( structure_id ), { 'config_value_map': config_value_map } )
